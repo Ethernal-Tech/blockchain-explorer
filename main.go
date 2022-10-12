@@ -1,8 +1,12 @@
 package main
 
 import (
-	"ethernal/explorer/db"
+	"ethernal/explorer/config"
+	"ethernal/explorer/eth"
+	"ethernal/explorer/syncer"
 	"log"
+	"path/filepath"
+	"time"
 )
 
 // type Book struct {
@@ -26,10 +30,27 @@ import (
 func main() {
 	log.Println("Hello world")
 
-	db := db.InitDb()
+	configFile, err := filepath.Abs(".env")
 
-	log.Println(db != nil)
+	if err != nil {
+		log.Fatalf("[!] Failed to find `.env` : %s\n", err.Error())
+	}
 
+	err = config.Read(configFile)
+
+	if err != nil {
+		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
+	}
+	// db := db.InitDb()
+
+	// log.Println(db != nil)
+
+	ethClient := eth.GetClient()
+	missingBlocks := []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}
+	//missingBlocks := []uint64{1, 2}
+	startingAt := time.Now().UTC()
+	syncer.SyncMissingBlocks(missingBlocks, ethClient)
+	log.Println("Took: ", time.Now().UTC().Sub(startingAt))
 	//db.AddQueryHook(bundebug.NewQueryHook(bundebug.WithVerbose(true)))
 
 	// bookNum := 50000
