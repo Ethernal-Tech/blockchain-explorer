@@ -1,11 +1,10 @@
 package main
 
 import (
-	"ethernal/explorer/config"
+	"ethernal/explorer/db"
 	"ethernal/explorer/eth"
 	"ethernal/explorer/syncer"
 	"log"
-	"path/filepath"
 	"time"
 )
 
@@ -28,28 +27,14 @@ import (
 // }
 
 func main() {
-	log.Println("Hello world")
 
-	configFile, err := filepath.Abs(".env")
-
-	if err != nil {
-		log.Fatalf("[!] Failed to find `.env` : %s\n", err.Error())
-	}
-
-	err = config.Read(configFile)
-
-	if err != nil {
-		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
-	}
-	// db := db.InitDb()
-
-	// log.Println(db != nil)
+	db := db.InitDb()
 
 	ethClient := eth.GetClient()
 	missingBlocks := []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}
 	//missingBlocks := []uint64{1, 2}
 	startingAt := time.Now().UTC()
-	syncer.SyncMissingBlocks(missingBlocks, ethClient)
+	syncer.SyncMissingBlocks(missingBlocks, ethClient, db)
 	log.Println("Took: ", time.Now().UTC().Sub(startingAt))
 	//db.AddQueryHook(bundebug.NewQueryHook(bundebug.WithVerbose(true)))
 

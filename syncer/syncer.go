@@ -7,15 +7,16 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/uptrace/bun"
 )
 
-func SyncMissingBlocks(missingBlocks []uint64, ethClient *ethclient.Client) {
+func SyncMissingBlocks(missingBlocks []uint64, ethClient *ethclient.Client, db *bun.DB) {
 	wp := workers.New(4)
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
-	go wp.GenerateFrom(createJobs(missingBlocks, ethClient))
+	go wp.GenerateFrom(createJobs(missingBlocks, ethClient, db))
 
 	go wp.Run(ctx)
 
@@ -38,7 +39,7 @@ func SyncMissingBlocks(missingBlocks []uint64, ethClient *ethclient.Client) {
 
 }
 
-func createJobs(missingBlocks []uint64, ethClient *ethclient.Client) []workers.Job {
+func createJobs(missingBlocks []uint64, ethClient *ethclient.Client, db *bun.DB) []workers.Job {
 	jobsCount := len(missingBlocks)
 	jobs := make([]workers.Job, jobsCount)
 
@@ -48,6 +49,7 @@ func createJobs(missingBlocks []uint64, ethClient *ethclient.Client) []workers.J
 			Args: JobArgs{
 				BlockNumber: missingBlocks[i],
 				EthClient:   ethClient,
+				Db:          db,
 			},
 		}
 	}
