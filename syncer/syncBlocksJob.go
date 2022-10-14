@@ -3,20 +3,24 @@ package syncer
 import (
 	"context"
 	"errors"
+	"ethernal/explorer/db"
+	"ethernal/explorer/eth"
 	"log"
 	"math/big"
 
-	"ethernal/explorer/db"
-
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/uptrace/bun"
 )
 
 type JobArgs struct {
-	BlockNumber uint64
-	EthClient   *ethclient.Client
-	Db          *bun.DB
+	BlockNumbers []uint64
+	Client       *rpc.Client
+	Db           *bun.DB
+}
+
+type JobResult struct {
+	Blocks []*db.Block
 }
 
 var (
@@ -27,24 +31,38 @@ var (
 			return nil, errDefault
 		}
 
-		var block *types.Block
-		var err error
+		var blocks []*eth.Block
+		elems := make([]rpc.BatchElem, 0, len(jobArgs.BlockNumbers))
+
+		for _, blockNumber := range jobArgs.BlockNumbers {
+			block := &eth.Block{}
+			err := error(nil)
+
+			elems = append(elems, rpc.BatchElem{
+				Method: "eth_getBlockByNumber",
+				Args:   []interface{}{string(hexutil.EncodeBig(big.NewInt(int64(blockNumber)))), false},
+				Result: block,
+				Error:  err,
+			})
+
+			blocks = append(blocks, block)
+		}
 
 		for {
-			block, err = jobArgs.EthClient.BlockByNumber(ctx, big.NewInt(int64(jobArgs.BlockNumber)))
+			err := jobArgs.Client.BatchCall(elems)
 			if err != nil {
-				log.Println(err)
-			} else {
+				log.Println("Error")
+			}
+			if blocks[0].Number != "" {
 				break
 			}
 		}
 
-		dbBlock := db.Block{
-			Hash:   block.Hash().String(),
-			Number: block.NumberU64(),
+		dbBlocks := make([]*db.Block, len(blocks))
+		for i, b := range blocks {
+			dbBlocks[i] = b.ToDbBlock()
 		}
-		jobArgs.Db.NewInsert().Model(&dbBlock).Exec(ctx)
 
-		return block, nil
+		return JobResult{Blocks: dbBlocks}, nil
 	}
 )
