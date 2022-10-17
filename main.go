@@ -9,24 +9,6 @@ import (
 	"time"
 )
 
-// type Book struct {
-// 	ID         int64 `bun:",pk,autoincrement"`
-// 	Name       string
-// 	CategoryID int64
-// 	Author     string
-// }
-
-// var _ bun.AfterCreateTableHook = (*Book)(nil)
-
-// func (*Book) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
-// 	_, err := query.DB().NewCreateIndex().
-// 		Model((*Book)(nil)).
-// 		Index("category_id_idx").
-// 		Column("category_id").
-// 		Exec(ctx)
-// 	return err
-// }
-
 type Block struct {
 	Number string
 }
@@ -40,10 +22,8 @@ func main() {
 	// defer f.Close()
 
 	// log.SetOutput(f)
-	// log.Println("This is a test log entry")
 
 	config, err := config.LoadConfig()
-
 	if err != nil {
 		log.Fatalf("[!] Failed to load config : %s\n", err.Error())
 	}

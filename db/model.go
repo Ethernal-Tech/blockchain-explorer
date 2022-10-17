@@ -1,8 +1,6 @@
 package db
 
 import (
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/lib/pq"
 )
 
@@ -52,24 +50,4 @@ type Block struct {
 	ExtraData           []byte        `bun:"type:bytea"`
 	Transactions        []Transaction `bun:"-"`
 	Events              []Event       `bun:"-"`
-}
-
-func CreateBlock(block *types.Block) *Block {
-	return &Block{
-		Hash:                block.Hash().String(),
-		Number:              block.NumberU64(),
-		Time:                block.Time(),
-		ParentHash:          block.ParentHash().String(),
-		Difficulty:          block.Difficulty().String(),
-		GasUsed:             block.GasUsed(),
-		GasLimit:            block.GasLimit(),
-		Nonce:               hexutil.EncodeUint64(block.Nonce()),
-		Miner:               block.Coinbase().Hex(),
-		Size:                float64(block.Size()),
-		StateRootHash:       block.Root().Hex(),
-		UncleHash:           block.UncleHash().Hex(),
-		TransactionRootHash: block.TxHash().Hex(),
-		ReceiptRootHash:     block.ReceiptHash().Hex(),
-		ExtraData:           block.Extra(),
-	}
 }

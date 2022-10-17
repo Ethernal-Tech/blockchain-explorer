@@ -30,7 +30,7 @@ func LoadConfig() (Config, error) {
 		return Config{}, err
 	}
 
-	return Config{
+	config := Config{
 		RPCUrl:       viper.GetString("RPCUrl"),
 		DbUser:       viper.GetString("DB_USER"),
 		DbPassword:   viper.GetString("DB_PASSWORD"),
@@ -39,12 +39,25 @@ func LoadConfig() (Config, error) {
 		DbName:       viper.GetString("DB_NAME"),
 		WorkersCount: viper.GetInt("WORKERS_COUNT"),
 		Step:         viper.GetInt("STEP"),
-	}, nil
+	}
+
+	config.fillDefaults()
+
+	return config, nil
 }
 
 // Read - Reading .env file content, during application start up
 func read(file string) error {
 	viper.SetConfigFile(file)
-
 	return viper.ReadInConfig()
+}
+
+func (cfg *Config) fillDefaults() {
+	if cfg.Step == 0 {
+		cfg.Step = 1000
+	}
+
+	if cfg.WorkersCount == 0 {
+		cfg.WorkersCount = 32
+	}
 }
