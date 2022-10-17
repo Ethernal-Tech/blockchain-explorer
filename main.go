@@ -1,6 +1,7 @@
 package main
 
 import (
+	"ethernal/explorer/config"
 	"ethernal/explorer/db"
 	"ethernal/explorer/eth"
 	"ethernal/explorer/syncer"
@@ -32,47 +33,27 @@ type Block struct {
 
 func main() {
 
-	db := db.InitDb()
+	// f, err := os.OpenFile("testlogfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	// if err != nil {
+	// 	log.Fatalf("error opening file: %v", err)
+	// }
+	// defer f.Close()
 
-	rpcClient := eth.GetClient()
+	// log.SetOutput(f)
+	// log.Println("This is a test log entry")
 
-	missingBlocks := []uint64{}
-	var blocks uint64 = 100000
-	var i uint64
-	for i = 0; i < blocks; i++ {
-		missingBlocks = append(missingBlocks, i+1)
+	config, err := config.LoadConfig()
+
+	if err != nil {
+		log.Fatalf("[!] Failed to load config : %s\n", err.Error())
 	}
 
-	// missingBlocks := []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20}
-	// missingBlocks := []uint64{1, 2}
+	db := db.InitDb(config)
+
+	rpcClient := eth.GetClient(config.RPCUrl)
 
 	startingAt := time.Now().UTC()
-	syncer.SyncMissingBlocks(missingBlocks, rpcClient, db)
+	syncer.SyncMissingBlocks(rpcClient, db, config)
 	log.Println("Took: ", time.Now().UTC().Sub(startingAt))
 	//db.AddQueryHook(bundebug.NewQueryHook(bundebug.WithVerbose(true)))
-
-	// bookNum := 50000
-
-	// var books []Book
-
-	// for i := 0; i < bookNum; i++ {
-	// 	b := &Book{
-	// 		Name:       "book_test",
-	// 		CategoryID: 1,
-	// 	}
-	// 	books = append(books, *b)
-	// }
-
-	// startingAt := time.Now().UTC()
-
-	// for _, book := range books {
-	// 	// if _, err := db.NewInsert().Model(&book).Exec(ctx); err != nil {
-	// 	// 	log.Println(err)
-	// 	// }
-	// 	//db.NewInsert().Model(&[]Book{book}).Exec(ctx)
-	// 	db.NewInsert().Model(&book).Exec(ctx)
-	// }
-
-	// //db.NewInsert().Model(&books).Exec(ctx)
-	// log.Println("Took: ", time.Now().UTC().Sub(startingAt))
 }

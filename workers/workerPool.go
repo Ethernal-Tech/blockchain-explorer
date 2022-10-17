@@ -12,6 +12,8 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobs <-chan Job, results ch
 		select {
 		case job, ok := <-jobs:
 			if !ok {
+				//kad zavrsimo mjerenje vratiti
+				//continue
 				return
 			}
 			// fan-in job execution multiplexing results into the results channel
@@ -42,15 +44,15 @@ func New(wcount int) WorkerPool {
 	}
 }
 
-func (wp WorkerPool) Run(ctx context.Context) {
-	var wg sync.WaitGroup
+func (wp WorkerPool) Run(ctx context.Context, wg *sync.WaitGroup) {
+	wg.Add(1)
 
 	for i := 0; i < wp.workersCount; i++ {
 		wg.Add(1)
 		// fan out worker goroutines
 		//reading from jobs channel and
 		//pushing calcs into results channel
-		go worker(ctx, &wg, wp.jobs, wp.results)
+		go worker(ctx, wg, wp.jobs, wp.results)
 	}
 
 	wg.Wait()

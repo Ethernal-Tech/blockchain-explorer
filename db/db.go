@@ -6,29 +6,16 @@ import (
 	"ethernal/explorer/config"
 	"fmt"
 	"log"
-	"path/filepath"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 )
 
-func InitDb() *bun.DB {
-	configFile, err := filepath.Abs(".env")
-
-	if err != nil {
-		log.Fatalf("[!] Failed to find `.env` : %s\n", err.Error())
-	}
-
-	err = config.Read(configFile)
-
-	if err != nil {
-		log.Fatalf("[!] Failed to read `.env` : %s\n", err.Error())
-	}
+func InitDb(config config.Config) *bun.DB {
 
 	connString := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s",
-		config.Get("DB_USER"), config.Get("DB_PASSWORD"), config.Get("DB_HOST"),
-		config.Get("DB_PORT"), config.Get("DB_NAME"))
+		config.DbUser, config.DbPassword, config.DbHost, config.DbPort, config.DbName)
 
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connString)))
 	db := bun.NewDB(sqldb, pgdialect.New())
