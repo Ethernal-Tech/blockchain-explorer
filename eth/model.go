@@ -7,84 +7,103 @@ import (
 )
 
 type Block struct {
-	Hash             string
-	ParentHash       string
-	Sha3Uncles       string
-	Miner            string
-	StateRoot        string
-	TransactionsRoot string
-	Size             string
-	ReceiptsRoot     string
-	LogsBloom        string
-	TotalDifficulty  string
-	Number           string
-	GasLimit         string
-	GasUsed          string
-	Timestamp        string
-	ExtraData        string
-	MixHash          string
-	Nonce            string
-	Transactions     []string
+	Hash       string
+	Number     string
+	ParentHash string
+	Nonce      string
+	// Sha3Uncles string
+	// LogsBloom        string
+	// TransactionsRoot string
+	// StateRoot        string
+	// ReceiptsRoot     string
+	Miner           string
+	Difficulty      string
+	TotalDifficulty string
+	ExtraData       string
+	Size            string
+	GasLimit        string
+	GasUsed         string
+	Timestamp       string
+	Transactions    []string
+	// Uncles           []string
+	// MixHash string
 }
 
 type Transaction struct {
-	BlockHash        string
-	BlockNumber      string
-	From             string
-	Gas              string
-	GasPrice         string
-	Hash             string
-	Input            string
+	Hash        string
+	BlockHash   string
+	BlockNumber string
+	From        string
+	To          string
+	Gas         string
+	GasPrice    string
+	// Input            string
 	Nonce            string
-	To               string
 	TransactionIndex string
 	Value            string
-	V                string
-	S                string
-	R                string
+	// V                string
+	// S                string
+	// R                string
+	Timestamp string // For DB only
 }
 
 type TransactionReceipt struct {
-	Status          string
-	Root            string
-	ContractAddress string
+	TransactionHash  string
+	TransactionIndex string
+	BlockHash        string
+	BlockNumber      string
+	// From             string
+	// To                string
+	CumulativeGasUsed string
+	GasUsed           string
+	ContractAddress   string
+	// Logs              string
+	// LogsBloom         string
+	// Root   string
+	Status string
 }
 
 func CreateDbBlock(block *Block) *db.Block {
 	return &db.Block{
-		Hash:       block.Hash,
-		Number:     ToUint64(block.Number),
-		Time:       ToUint64(block.Timestamp),
-		ParentHash: block.ParentHash,
-		Difficulty: block.TotalDifficulty,
-		GasUsed:    ToUint64(block.GasUsed),
-		GasLimit:   ToUint64(block.GasLimit),
-		Nonce:      block.Nonce,
-		Miner:      block.Miner,
-		// Size:          ToFloat64(b.Size),
-		StateRootHash: block.StateRoot,
-		// UncleHash: b.Sha3Uncles,
-		TransactionRootHash: block.TransactionsRoot,
-		ReceiptRootHash:     block.ReceiptsRoot,
-		ExtraData:           []byte(block.ExtraData),
+		Hash:            block.Hash,
+		Number:          ToUint64(block.Number),
+		ParentHash:      block.ParentHash,
+		Nonce:           block.Nonce,
+		Miner:           block.Miner,
+		Difficulty:      block.Difficulty,
+		TotalDifficulty: block.TotalDifficulty,
+		ExtraData:       []byte(block.ExtraData),
+		Size:            ToUint64(block.Size),
+		GasLimit:        ToUint64(block.GasLimit),
+		GasUsed:         ToUint64(block.GasUsed),
+		Timestamp:       ToUint64(block.Timestamp),
 	}
 }
 
 func CreateDbTransaction(transaction *Transaction, receipt *TransactionReceipt) *db.Transaction {
+	if transaction.BlockHash != receipt.BlockHash ||
+		transaction.BlockNumber != receipt.BlockNumber ||
+		transaction.TransactionIndex != receipt.TransactionIndex ||
+		transaction.Hash != receipt.TransactionHash {
+		log.Println("Error converting transaction and receipt to DbTransaction")
+		return &db.Transaction{}
+	}
+
 	return &db.Transaction{
-		Hash:      transaction.Hash,
-		BlockHash: transaction.BlockHash,
-		From:      transaction.From,
-		Gas:       ToUint64(transaction.Gas),
-		GasPrice:  transaction.GasPrice,
-		//Input - Data?
-		Nonce: ToUint64(transaction.Nonce),
-		To:    transaction.To,
-		//Index:
-		Value:    transaction.Value,
-		State:    ToUint64(receipt.Status),
-		Contract: receipt.ContractAddress,
-		//Root: receipt.Root,
+		Hash:             transaction.Hash,
+		BlockHash:        transaction.BlockHash,
+		BlockNumber:      ToUint64(transaction.BlockNumber),
+		From:             transaction.From,
+		To:               transaction.To,
+		Gas:              ToUint64(transaction.Gas),
+		GasUsed:          ToUint64(receipt.GasUsed),
+		GasPrice:         ToUint64(transaction.GasPrice),
+		Nonce:            ToUint64(transaction.Nonce),
+		TransactionIndex: ToUint64(transaction.TransactionIndex),
+		Value:            transaction.Value,
+		ContractAddress:  receipt.ContractAddress,
+		Status:           ToUint64(receipt.Status),
+		Timestamp:        ToUint64(transaction.Timestamp),
 	}
 }
 
@@ -93,23 +112,21 @@ func ToUint64(str string) uint64 {
 		return 0
 	}
 
-	res, err := strconv.ParseUint(str[2:], 16, 64)
-	if err != nil {
-		log.Printf("Error converting %s to uint64 ", str)
-		return 0
-	}
-	return res
-}
+	var res uint64
+	var err error
 
-func ToFloat64(str string) float64 {
-	if len(str) <= 2 {
-		return 0
-	}
-
-	res, err := strconv.ParseFloat(str[2:], 64)
-	if err != nil {
-		log.Printf("Error converting %s to float64 ", str)
-		return 0
+	if str[0:2] == "0x" {
+		res, err = strconv.ParseUint(str[2:], 16, 64)
+		if err != nil {
+			log.Printf("Error converting %s to uint64. %s", str, err)
+			return 0
+		}
+	} else {
+		res, err = strconv.ParseUint(str, 10, 64)
+		if err != nil {
+			log.Printf("Error converting %s to uint64. %s", str, err)
+			return 0
+		}
 	}
 	return res
 }

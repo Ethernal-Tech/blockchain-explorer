@@ -17,7 +17,7 @@ var step int
 func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 
 	missingBlocks := []uint64{}
-	var blocks uint64 = 1000000
+	var blocks uint64 = 10000
 	var i uint64
 	for i = 0; i < blocks; i++ {
 		missingBlocks = append(missingBlocks, i+1)
@@ -26,15 +26,14 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 	step = config.Step
 	wp := workers.New(config.WorkersCount)
 
-	totalCounter := int(math.Ceil(float64(blocks) / float64(step)))
-	counter := 0
-
 	//TEST START
 
-	// missingBlocks = []uint64{7785381}
-	// totalCounter = 1
+	// missingBlocks = []uint64{15000000}
 
 	//TEST END
+
+	totalCounter := int(math.Ceil(float64(len(missingBlocks)) / float64(step)))
+	counter := 0
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()

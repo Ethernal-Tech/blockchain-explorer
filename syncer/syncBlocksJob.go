@@ -62,7 +62,9 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs) ([]*eth.Transaction, 
 		}
 
 		for _, transHash := range block.Transactions {
-			transaction := &eth.Transaction{}
+			transaction := &eth.Transaction{
+				Timestamp: block.Timestamp,
+			}
 			receipt := &eth.TransactionReceipt{}
 			err1 := error(nil)
 			err2 := error(nil)
