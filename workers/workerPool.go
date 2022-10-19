@@ -29,13 +29,13 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobs <-chan Job, results ch
 }
 
 type WorkerPool struct {
-	workersCount int
+	workersCount uint
 	jobs         chan Job
 	results      chan Result
 	Done         chan struct{}
 }
 
-func New(wcount int) WorkerPool {
+func New(wcount uint) WorkerPool {
 	return WorkerPool{
 		workersCount: wcount,
 		jobs:         make(chan Job, wcount),
@@ -47,7 +47,8 @@ func New(wcount int) WorkerPool {
 func (wp WorkerPool) Run(ctx context.Context, wg *sync.WaitGroup) {
 	wg.Add(1)
 
-	for i := 0; i < wp.workersCount; i++ {
+	var i uint
+	for i = 0; i < wp.workersCount; i++ {
 		wg.Add(1)
 		// fan out worker goroutines
 		//reading from jobs channel and

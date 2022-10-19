@@ -7,14 +7,15 @@ import (
 )
 
 type Config struct {
-	RPCUrl       string
-	DbUser       string
-	DbPassword   string
-	DbHost       string
-	DbPort       string
-	DbName       string
-	WorkersCount int
-	Step         int
+	RPCUrl               string
+	DbUser               string
+	DbPassword           string
+	DbHost               string
+	DbPort               string
+	DbName               string
+	WorkersCount         uint
+	Step                 uint
+	CallTimeoutInSeconds uint
 }
 
 func LoadConfig() (Config, error) {
@@ -31,14 +32,15 @@ func LoadConfig() (Config, error) {
 	}
 
 	config := Config{
-		RPCUrl:       viper.GetString("RPCUrl"),
-		DbUser:       viper.GetString("DB_USER"),
-		DbPassword:   viper.GetString("DB_PASSWORD"),
-		DbHost:       viper.GetString("DB_HOST"),
-		DbPort:       viper.GetString("DB_PORT"),
-		DbName:       viper.GetString("DB_NAME"),
-		WorkersCount: viper.GetInt("WORKERS_COUNT"),
-		Step:         viper.GetInt("STEP"),
+		RPCUrl:               viper.GetString("RPCUrl"),
+		DbUser:               viper.GetString("DB_USER"),
+		DbPassword:           viper.GetString("DB_PASSWORD"),
+		DbHost:               viper.GetString("DB_HOST"),
+		DbPort:               viper.GetString("DB_PORT"),
+		DbName:               viper.GetString("DB_NAME"),
+		WorkersCount:         viper.GetUint("WORKERS_COUNT"),
+		Step:                 viper.GetUint("STEP"),
+		CallTimeoutInSeconds: viper.GetUint("CALL_TIMEOUT_IN_SECONDS"),
 	}
 
 	config.fillDefaults()

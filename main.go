@@ -6,6 +6,7 @@ import (
 	"ethernal/explorer/eth"
 	"ethernal/explorer/syncer"
 	"log"
+	"os"
 	"time"
 )
 
@@ -15,13 +16,13 @@ type Block struct {
 
 func main() {
 
-	// f, err := os.OpenFile("testlogfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	// if err != nil {
-	// 	log.Fatalf("error opening file: %v", err)
-	// }
-	// defer f.Close()
+	f, err := os.OpenFile("testlogfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
 
-	// log.SetOutput(f)
+	log.SetOutput(f)
 
 	config, err := config.LoadConfig()
 	if err != nil {

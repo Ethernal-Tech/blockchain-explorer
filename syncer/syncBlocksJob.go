@@ -7,6 +7,7 @@ import (
 	"ethernal/explorer/eth"
 	"log"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -14,9 +15,10 @@ import (
 )
 
 type JobArgs struct {
-	BlockNumbers []uint64
-	Client       *rpc.Client
-	Db           *bun.DB
+	BlockNumbers         []uint64
+	Client               *rpc.Client
+	Db                   *bun.DB
+	CallTimeoutInSeconds uint
 }
 
 type JobResult struct {
@@ -32,8 +34,8 @@ var (
 			return nil, errDefault
 		}
 
-		blocks := GetBlocks(jobArgs)
-		transactions, receipts := GetTransactions(blocks, jobArgs)
+		blocks := GetBlocks(jobArgs, ctx)
+		transactions, receipts := GetTransactions(blocks, jobArgs, ctx)
 
 		dbBlocks := make([]*db.Block, len(blocks))
 		for i, b := range blocks {
@@ -45,12 +47,11 @@ var (
 			dbTransactions[i] = eth.CreateDbTransaction(t, receipts[i])
 		}
 
-		//log.Println("SENT: ", jobArgs.BlockNumbers[0])
 		return JobResult{Blocks: dbBlocks, Transactions: dbTransactions}, nil
 	}
 )
 
-func GetTransactions(blocks []*eth.Block, jobArgs JobArgs) ([]*eth.Transaction, []*eth.TransactionReceipt) {
+func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) ([]*eth.Transaction, []*eth.TransactionReceipt) {
 	var transactions []*eth.Transaction
 	var receipts []*eth.TransactionReceipt
 	var errors []error
@@ -91,9 +92,9 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs) ([]*eth.Transaction, 
 
 	if len(elems) != 0 {
 		for {
-			ioErr := jobArgs.Client.BatchCall(elems)
+			ioErr := batchCallWithTimeout(&elems, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
 			if ioErr != nil {
-				log.Println("Error", ioErr)
+				log.Println("Get transations IO Error", ioErr)
 			}
 			if transactions[0].Hash != "" {
 				break
@@ -110,7 +111,7 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs) ([]*eth.Transaction, 
 	return transactions, receipts
 }
 
-func GetBlocks(jobArgs JobArgs) []*eth.Block {
+func GetBlocks(jobArgs JobArgs, ctx context.Context) []*eth.Block {
 	var blocks []*eth.Block
 	errors := make([]error, 0, len(jobArgs.BlockNumbers))
 	elems := make([]rpc.BatchElem, 0, len(jobArgs.BlockNumbers))
@@ -133,11 +134,10 @@ func GetBlocks(jobArgs JobArgs) []*eth.Block {
 	//log.Println("Before batch call: [", jobArgs.BlockNumbers[0], ":", jobArgs.BlockNumbers[len(jobArgs.BlockNumbers)-1], "]")
 
 	for {
-		//log.Println("Enter: ", jobArgs.BlockNumbers[0])
-		ioErr := jobArgs.Client.BatchCall(elems)
-		//log.Println("Exit: ", jobArgs.BlockNumbers[0])
+		ioErr := batchCallWithTimeout(&elems, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
 		if ioErr != nil {
-			log.Println("Error", ioErr)
+			log.Println("Get blocks IO Error: ", ioErr)
+			continue
 		}
 		if blocks[0].Number != "" {
 			break
@@ -153,4 +153,10 @@ func GetBlocks(jobArgs JobArgs) []*eth.Block {
 	}
 
 	return blocks
+}
+
+func batchCallWithTimeout(elems *[]rpc.BatchElem, client rpc.Client, callTimeoutInSeconds uint, ctx context.Context) error {
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Duration(callTimeoutInSeconds)*time.Second)
+	defer cancel()
+	return client.BatchCallContext(ctxWithTimeout, *elems)
 }

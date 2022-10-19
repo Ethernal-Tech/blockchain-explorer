@@ -2,8 +2,8 @@ package eth
 
 import (
 	"ethernal/explorer/db"
+	"ethernal/explorer/utils"
 	"log"
-	"strconv"
 )
 
 type Block struct {
@@ -66,17 +66,17 @@ type TransactionReceipt struct {
 func CreateDbBlock(block *Block) *db.Block {
 	return &db.Block{
 		Hash:            block.Hash,
-		Number:          ToUint64(block.Number),
+		Number:          utils.ToUint64(block.Number),
 		ParentHash:      block.ParentHash,
 		Nonce:           block.Nonce,
 		Miner:           block.Miner,
 		Difficulty:      block.Difficulty,
 		TotalDifficulty: block.TotalDifficulty,
 		ExtraData:       []byte(block.ExtraData),
-		Size:            ToUint64(block.Size),
-		GasLimit:        ToUint64(block.GasLimit),
-		GasUsed:         ToUint64(block.GasUsed),
-		Timestamp:       ToUint64(block.Timestamp),
+		Size:            utils.ToUint64(block.Size),
+		GasLimit:        utils.ToUint64(block.GasLimit),
+		GasUsed:         utils.ToUint64(block.GasUsed),
+		Timestamp:       utils.ToUint64(block.Timestamp),
 	}
 }
 
@@ -92,41 +92,17 @@ func CreateDbTransaction(transaction *Transaction, receipt *TransactionReceipt) 
 	return &db.Transaction{
 		Hash:             transaction.Hash,
 		BlockHash:        transaction.BlockHash,
-		BlockNumber:      ToUint64(transaction.BlockNumber),
+		BlockNumber:      utils.ToUint64(transaction.BlockNumber),
 		From:             transaction.From,
 		To:               transaction.To,
-		Gas:              ToUint64(transaction.Gas),
-		GasUsed:          ToUint64(receipt.GasUsed),
-		GasPrice:         ToUint64(transaction.GasPrice),
-		Nonce:            ToUint64(transaction.Nonce),
-		TransactionIndex: ToUint64(transaction.TransactionIndex),
+		Gas:              utils.ToUint64(transaction.Gas),
+		GasUsed:          utils.ToUint64(receipt.GasUsed),
+		GasPrice:         utils.ToUint64(transaction.GasPrice),
+		Nonce:            utils.ToUint64(transaction.Nonce),
+		TransactionIndex: utils.ToUint64(transaction.TransactionIndex),
 		Value:            transaction.Value,
 		ContractAddress:  receipt.ContractAddress,
-		Status:           ToUint64(receipt.Status),
-		Timestamp:        ToUint64(transaction.Timestamp),
+		Status:           utils.ToUint64(receipt.Status),
+		Timestamp:        utils.ToUint64(transaction.Timestamp),
 	}
-}
-
-func ToUint64(str string) uint64 {
-	if len(str) <= 2 {
-		return 0
-	}
-
-	var res uint64
-	var err error
-
-	if str[0:2] == "0x" {
-		res, err = strconv.ParseUint(str[2:], 16, 64)
-		if err != nil {
-			log.Printf("Error converting %s to uint64. %s", str, err)
-			return 0
-		}
-	} else {
-		res, err = strconv.ParseUint(str, 10, 64)
-		if err != nil {
-			log.Printf("Error converting %s to uint64. %s", str, err)
-			return 0
-		}
-	}
-	return res
 }
