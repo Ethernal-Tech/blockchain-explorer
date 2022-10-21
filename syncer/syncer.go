@@ -90,6 +90,7 @@ func createJobs(missingBlocks []uint64, client *rpc.Client, db *bundb.DB, config
 				BlockNumbers:         missingBlocks[i*step : end],
 				Client:               client,
 				Db:                   db,
+				Step:                 config.Step,
 				CallTimeoutInSeconds: config.CallTimeoutInSeconds,
 			},
 		}

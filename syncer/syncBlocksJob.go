@@ -19,6 +19,7 @@ type JobArgs struct {
 	BlockNumbers         []uint64
 	Client               *rpc.Client
 	Db                   *bun.DB
+	Step                 uint
 	CallTimeoutInSeconds uint
 }
 
@@ -91,10 +92,11 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) 
 		}
 	}
 
-	step := 1000 //TODO config.Step
+	step := jobArgs.Step
 	if len(elems) != 0 {
-		totalCounter := int(math.Ceil(float64(len(elems)) / float64(step)))
-		for i := 0; i < totalCounter; i++ {
+		totalCounter := uint(math.Ceil(float64(len(elems)) / float64(step)))
+		var i uint
+		for i = 0; i < totalCounter; i++ {
 
 			from := i * step
 			to := int(math.Min(float64(len(elems)), float64((i+1)*step)))
