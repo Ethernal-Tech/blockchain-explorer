@@ -6,6 +6,9 @@ import (
 )
 
 func ToUint64(str string) uint64 {
+	if len(str) == 0 {
+		return 0
+	}
 
 	var res uint64
 	var err error

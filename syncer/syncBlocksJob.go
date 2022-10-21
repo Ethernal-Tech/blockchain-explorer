@@ -6,6 +6,7 @@ import (
 	"ethernal/explorer/db"
 	"ethernal/explorer/eth"
 	"log"
+	"math"
 	"math/big"
 	"time"
 
@@ -90,17 +91,38 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) 
 		}
 	}
 
+	step := 1000 //TODO config.Step
 	if len(elems) != 0 {
-		for {
-			ioErr := batchCallWithTimeout(&elems, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
-			if ioErr != nil {
-				log.Println("Get transations IO Error", ioErr)
-			}
-			if transactions[0].Hash != "" {
-				break
+		totalCounter := int(math.Ceil(float64(len(elems)) / float64(step)))
+		for i := 0; i < totalCounter; i++ {
+
+			from := i * step
+			to := int(math.Min(float64(len(elems)), float64((i+1)*step)))
+
+			elemSlice := elems[from:to]
+			for {
+				ioErr := batchCallWithTimeout(&elemSlice, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
+				if ioErr != nil {
+					log.Println("Get transations IO Error", ioErr)
+				}
+				if transactions[0].Hash != "" {
+					break
+				}
 			}
 		}
 	}
+
+	// if len(elems) != 0 {
+	// 	for {
+	// 		ioErr := batchCallWithTimeout(&elems, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
+	// 		if ioErr != nil {
+	// 			log.Println("Get transations IO Error", ioErr)
+	// 		}
+	// 		if transactions[0].Hash != "" {
+	// 			break
+	// 		}
+	// 	}
+	// }
 
 	for _, e := range errors {
 		if e != nil {
