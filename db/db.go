@@ -23,11 +23,11 @@ func InitDb(config config.Config) *bun.DB {
 	//db.AddQueryHook(bundebug.NewQueryHook(bundebug.WithVerbose(true)))
 
 	ctx := context.Background()
-	if _, err := db.NewCreateTable().Model((*Block)(nil)).Exec(ctx); err != nil {
+	if _, err := db.NewCreateTable().Model((*Block)(nil)).IfNotExists().Exec(ctx); err != nil {
 		log.Println(err)
 	}
 
-	if _, err := db.NewCreateTable().Model((*Transaction)(nil)).Exec(ctx); err != nil {
+	if _, err := db.NewCreateTable().Model((*Transaction)(nil)).IfNotExists().Exec(ctx); err != nil {
 		log.Println(err)
 	}
 
@@ -50,6 +50,7 @@ func (*Transaction) AfterCreateTable(ctx context.Context, query *bun.CreateTable
 		Model((*Transaction)(nil)).
 		Index("from_idx").
 		Column("from").
+		IfNotExists().
 		Exec(ctx)
 	if err != nil {
 		return err
@@ -59,6 +60,7 @@ func (*Transaction) AfterCreateTable(ctx context.Context, query *bun.CreateTable
 		Model((*Transaction)(nil)).
 		Index("to_idx").
 		Column("to").
+		IfNotExists().
 		Exec(ctx)
 	if err != nil {
 		return err
@@ -68,6 +70,7 @@ func (*Transaction) AfterCreateTable(ctx context.Context, query *bun.CreateTable
 		Model((*Transaction)(nil)).
 		Index("block_hash_idx").
 		Column("block_hash").
+		IfNotExists().
 		Exec(ctx)
 	if err != nil {
 		return err
@@ -77,6 +80,7 @@ func (*Transaction) AfterCreateTable(ctx context.Context, query *bun.CreateTable
 		Model((*Transaction)(nil)).
 		Index("block_number_idx").
 		Column("block_number").
+		IfNotExists().
 		Exec(ctx)
 	if err != nil {
 		return err
@@ -86,6 +90,7 @@ func (*Transaction) AfterCreateTable(ctx context.Context, query *bun.CreateTable
 		Model((*Transaction)(nil)).
 		Index("contract_address_idx").
 		Column("contract_address").
+		IfNotExists().
 		Exec(ctx)
 	if err != nil {
 		return err
@@ -103,6 +108,7 @@ func (*Block) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuery)
 		Model((*Block)(nil)).
 		Index("number_idx").
 		Column("number").
+		IfNotExists().
 		Exec(ctx)
 	if err != nil {
 		return err
@@ -112,6 +118,7 @@ func (*Block) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuery)
 		Model((*Block)(nil)).
 		Index("miner_idx").
 		Column("miner").
+		IfNotExists().
 		Exec(ctx)
 	if err != nil {
 		return err
