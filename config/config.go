@@ -13,6 +13,7 @@ type Config struct {
 	DbHost               string
 	DbPort               string
 	DbName               string
+	DbSSL                string
 	WorkersCount         uint
 	Step                 uint
 	CallTimeoutInSeconds uint
@@ -38,6 +39,7 @@ func LoadConfig() (Config, error) {
 		DbHost:               viper.GetString("DB_HOST"),
 		DbPort:               viper.GetString("DB_PORT"),
 		DbName:               viper.GetString("DB_NAME"),
+		DbSSL:                viper.GetString("DB_SSL"),
 		WorkersCount:         viper.GetUint("WORKERS_COUNT"),
 		Step:                 viper.GetUint("STEP"),
 		CallTimeoutInSeconds: viper.GetUint("CALL_TIMEOUT_IN_SECONDS"),

@@ -14,8 +14,8 @@ import (
 
 func InitDb(config config.Config) *bun.DB {
 
-	connString := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s",
-		config.DbUser, config.DbPassword, config.DbHost, config.DbPort, config.DbName)
+	connString := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
+		config.DbUser, config.DbPassword, config.DbHost, config.DbPort, config.DbName, config.DbSSL)
 
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connString)))
 	db := bun.NewDB(sqldb, pgdialect.New())
