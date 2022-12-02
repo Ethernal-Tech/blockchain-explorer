@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"database/sql"
+
 	"github.com/ethereum/go-ethereum/rpc"
 	bundb "github.com/uptrace/bun"
 )
@@ -31,6 +33,10 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 	//TEST END
 
 	totalCounter := int(math.Ceil(float64(len(missingBlocks)) / float64(config.Step)))
+	if totalCounter == 0 {
+		log.Println("There are no blocks to sync")
+		return
+	}
 	counter := 0
 
 	var wg sync.WaitGroup
@@ -50,16 +56,25 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 			counter++
 			val := result.Value.(JobResult)
 
-			_, blockError := db.NewInsert().Model(&val.Blocks).Exec(ctx)
-			if blockError != nil {
-				log.Println(blockError)
-			}
-
-			if len(val.Transactions) != 0 {
-				_, transError := db.NewInsert().Model(&val.Transactions).Exec(ctx)
-				if transError != nil {
-					log.Println(transError)
+			//inserting blocks and transactions in one transaction scope
+			err := db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bundb.Tx) error {
+				_, blockError := tx.NewInsert().Model(&val.Blocks).Exec(ctx)
+				if blockError != nil {
+					return blockError
 				}
+
+				if len(val.Transactions) != 0 {
+					_, transError := tx.NewInsert().Model(&val.Transactions).Exec(ctx)
+					if transError != nil {
+						return transError
+					}
+				}
+
+				return nil
+			})
+
+			if err != nil {
+				log.Println(err)
 			}
 
 			//log.Println("Counter result after: ", counter)
