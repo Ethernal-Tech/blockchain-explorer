@@ -2,11 +2,14 @@ package workers
 
 import (
 	"context"
-	"log"
 	"sync"
+
+	logrus "github.com/sirupsen/logrus"
 )
 
 func worker(ctx context.Context, wg *sync.WaitGroup, jobs <-chan Job, results chan<- Result) {
+	logrus.Info("New worker is created")
+
 	defer wg.Done()
 	for {
 		select {
@@ -19,7 +22,7 @@ func worker(ctx context.Context, wg *sync.WaitGroup, jobs <-chan Job, results ch
 			// fan-in job execution multiplexing results into the results channel
 			results <- job.execute(ctx)
 		case <-ctx.Done():
-			log.Println("cancelled worker. Error detail: \n", ctx.Err())
+			logrus.Error("Cancelled worker, err: ", ctx.Err())
 			results <- Result{
 				Err: ctx.Err(),
 			}

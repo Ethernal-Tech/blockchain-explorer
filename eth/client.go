@@ -1,9 +1,8 @@
 package eth
 
 import (
-	"log"
-
 	"github.com/ethereum/go-ethereum/rpc"
+	logrus "github.com/sirupsen/logrus"
 )
 
 // Connect to blockchain node, either using HTTP or Websocket connection
@@ -12,7 +11,7 @@ func GetClient(rpcUrl string) *rpc.Client {
 
 	rpcClient, err := rpc.Dial(rpcUrl)
 	if err != nil {
-		log.Println(err)
+		logrus.Panic("Cannot connect to blockchain node, err: ", err)
 	}
 
 	return rpcClient

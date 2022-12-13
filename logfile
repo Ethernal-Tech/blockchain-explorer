@@ -1,0 +1,300 @@
+ 2022-12-12 21:22:02 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE TABLE[1.6282ms]: CREATE TABLE IF NOT EXISTS "blocks" ("hash" char(66) NOT NULL, "number" bigint NOT NULL, "parent_hash" char(66) NOT NULL, "nonce" varchar NOT NULL, "miner" char(42) NOT NULL, "difficulty" varchar NOT NULL, "total_difficulty" varchar NOT NULL, "extra_data" bytea, "size" bigint NOT NULL, "gas_limit" bigint NOT NULL, "gas_used" bigint NOT NULL, "timestamp" bigint NOT NULL, PRIMARY KEY ("hash"), UNIQUE ("number"))
+
+ 2022-12-12 21:22:02 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[1.5379ms]: CREATE INDEX IF NOT EXISTS "number_idx" ON "blocks" ("number")
+
+ 2022-12-12 21:22:02 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[504.1µs]: CREATE INDEX IF NOT EXISTS "miner_idx" ON "blocks" ("miner")
+
+ 2022-12-12 21:22:02 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE TABLE[502.3µs]: CREATE TABLE IF NOT EXISTS "transactions" ("hash" char(66) NOT NULL, "block_hash" char(66) NOT NULL, "block_number" bigint NOT NULL, "from" char(42) NOT NULL, "to" char(42), "gas" bigint NOT NULL, "gas_used" bigint NOT NULL, "gas_price" bigint NOT NULL, "nonce" bigint NOT NULL, "transaction_index" integer NOT NULL, "value" varchar, "contract_address" char(42), "status" smallint NOT NULL, "timestamp" bigint NOT NULL, PRIMARY KEY ("hash"), FOREIGN KEY ("block_hash") REFERENCES "blocks" ("hash"))
+
+ 2022-12-12 21:22:02 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[1.4262ms]: CREATE INDEX IF NOT EXISTS "from_idx" ON "transactions" ("from")
+
+ 2022-12-12 21:22:02 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[743.9µs]: CREATE INDEX IF NOT EXISTS "to_idx" ON "transactions" ("to")
+
+ 2022-12-12 21:22:02 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[850.6µs]: CREATE INDEX IF NOT EXISTS "block_hash_idx" ON "transactions" ("block_hash")
+
+ 2022-12-12 21:22:02 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[1.3553ms]: CREATE INDEX IF NOT EXISTS "block_number_idx" ON "transactions" ("block_number")
+
+ 2022-12-12 21:22:02 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[579.3µs]: CREATE INDEX IF NOT EXISTS "contract_address_idx" ON "transactions" ("contract_address")
+
+ 2022-12-12 21:22:03 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:147)
+[INFO] The number of latest block is 8124010
+
+ 2022-12-12 21:22:03 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] SELECT[2.0427ms]: SELECT "number" FROM "blocks" ORDER BY "number" ASC
+
+ 2022-12-12 21:22:04 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:116)
+[INFO] The number of created jobs is 1
+
+ 2022-12-12 21:22:07 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:12)
+[INFO] New worker is created
+
+ 2022-12-12 21:22:07 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:13)
+[INFO] Number of goroutines: 7
+
+ 2022-12-12 21:22:07 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:12)
+[INFO] New worker is created
+
+ 2022-12-12 21:22:34 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:13)
+[INFO] Number of goroutines: 7
+
+ 2022-12-12 21:22:55 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] BEGIN[1.6511ms]: BEGIN
+
+ 2022-12-12 21:23:01 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:124)
+[ERROR] INSERT[1.5857ms]: INSERT INTO "blocks" ("hash", "number", "parent_hash", "nonce", "miner", "difficulty", "total_difficulty", "extra_data", "size", "gas_limit", "gas_used", "timestamp") VALUES ('0x8f5bab218b6bb34476f51ca588e9f4553a3a7ce5e13a66c660a5283e97e9a85a', 1, '0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a', '0x0000000000000000', '0x0000000000000000000000000000000000000000', '0x2', '0x3', '\x30783530363137323639373437393230353436353633363832303431373537343638366637323639373437393030303030303030303030303030303030303030303032626266383836313831393730363534656434366533666165306465643431656535336665633730326334373433313938386137616538306536353736663335353236383466303639616638306261313164333633323761616638343664343730353236653461316334363136303162326664346562646364633262373334613031', 606, 10475521, 0, 1548947453), ('0xe675f1362d82cdd1ec260b16fb046c17f61d8a84808150f5d715ccce775f575e', 2, '0x8f5bab218b6bb34476f51ca588e9f4553a3a7ce5e13a66c660a5283e97e9a85a', '0x0000000000000000', '0x0000000000000000000000000000000000000000', '0x2', '0x5', '\x30783530363137323639373437393230353436353633363832303431373537343638366637323639373437393030303030303030303030303030303030303030303066646436366434343165666637643431313666653938376630663130383132666336386230366363353030666637316334393232333462396137623862326634353539373139306439376364383566366461613435616339353138626566396637313566346264343134353034623161323164386336383136353430353564663030', 606, 10465292, 0, 1548947468): ERROR: duplicate key value violates unique constraint "blocks_pkey" (SQLSTATE=23505)
+
+ 2022-12-12 21:23:12 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:63)
+[ERROR] Error during inserting blocks in DB, error: ERROR: duplicate key value violates unique constraint "blocks_pkey" (SQLSTATE=23505)
+
+ 2022-12-12 21:23:42 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] ROLLBACK[1.0271ms]: ROLLBACK
+
+ 2022-12-12 21:23:54 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:87)
+[INFO] DONE!
+
+ 2022-12-12 21:23:56 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/main.go (line:82)
+[INFO] Took: 1m54.0176338s
+
+ 2022-12-12 21:26:04 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE TABLE[505.7µs]: CREATE TABLE IF NOT EXISTS "blocks" ("hash" char(66) NOT NULL, "number" bigint NOT NULL, "parent_hash" char(66) NOT NULL, "nonce" varchar NOT NULL, "miner" char(42) NOT NULL, "difficulty" varchar NOT NULL, "total_difficulty" varchar NOT NULL, "extra_data" bytea, "size" bigint NOT NULL, "gas_limit" bigint NOT NULL, "gas_used" bigint NOT NULL, "timestamp" bigint NOT NULL, PRIMARY KEY ("hash"), UNIQUE ("number"))
+
+ 2022-12-12 21:26:04 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[622.4µs]: CREATE INDEX IF NOT EXISTS "number_idx" ON "blocks" ("number")
+
+ 2022-12-12 21:26:04 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[1.3409ms]: CREATE INDEX IF NOT EXISTS "miner_idx" ON "blocks" ("miner")
+
+ 2022-12-12 21:26:04 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE TABLE[1.1443ms]: CREATE TABLE IF NOT EXISTS "transactions" ("hash" char(66) NOT NULL, "block_hash" char(66) NOT NULL, "block_number" bigint NOT NULL, "from" char(42) NOT NULL, "to" char(42), "gas" bigint NOT NULL, "gas_used" bigint NOT NULL, "gas_price" bigint NOT NULL, "nonce" bigint NOT NULL, "transaction_index" integer NOT NULL, "value" varchar, "contract_address" char(42), "status" smallint NOT NULL, "timestamp" bigint NOT NULL, PRIMARY KEY ("hash"), FOREIGN KEY ("block_hash") REFERENCES "blocks" ("hash"))
+
+ 2022-12-12 21:26:04 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[505.7µs]: CREATE INDEX IF NOT EXISTS "from_idx" ON "transactions" ("from")
+
+ 2022-12-12 21:26:04 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[507.9µs]: CREATE INDEX IF NOT EXISTS "to_idx" ON "transactions" ("to")
+
+ 2022-12-12 21:26:04 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[575.8µs]: CREATE INDEX IF NOT EXISTS "block_hash_idx" ON "transactions" ("block_hash")
+
+ 2022-12-12 21:26:04 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[639.5µs]: CREATE INDEX IF NOT EXISTS "block_number_idx" ON "transactions" ("block_number")
+
+ 2022-12-12 21:26:04 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[2.8064ms]: CREATE INDEX IF NOT EXISTS "contract_address_idx" ON "transactions" ("contract_address")
+
+ 2022-12-12 21:26:05 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:147)
+[INFO] The number of latest block is 8124023
+
+ 2022-12-12 21:26:05 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] SELECT[1.6721ms]: SELECT "number" FROM "blocks" ORDER BY "number" ASC
+
+ 2022-12-12 21:26:07 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:116)
+[INFO] The number of created jobs is 2
+
+ 2022-12-12 21:26:08 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:12)
+[INFO] New worker is created
+
+ 2022-12-12 21:26:08 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:13)
+[INFO] Number of goroutines: 7
+
+ 2022-12-12 21:26:08 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:12)
+[INFO] New worker is created
+
+ 2022-12-12 21:26:39 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:13)
+[INFO] Number of goroutines: 7
+
+ 2022-12-12 21:27:17 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncBlocksJob.go (line:163)
+[ERROR] Cannot get blocks from blockchain, error: Post "http://nswd.ddns.net:8545": context deadline exceeded
+
+ 2022-12-12 21:27:29 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] BEGIN[3.7575081s]: BEGIN
+
+ 2022-12-12 21:28:01 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] INSERT[1.6205ms]: INSERT INTO "blocks" ("hash", "number", "parent_hash", "nonce", "miner", "difficulty", "total_difficulty", "extra_data", "size", "gas_limit", "gas_used", "timestamp") VALUES ('0xe675f1362d82cdd1ec260b16fb046c17f61d8a84808150f5d715ccce775f575e', 2, '0x8f5bab218b6bb34476f51ca588e9f4553a3a7ce5e13a66c660a5283e97e9a85a', '0x0000000000000000', '0x0000000000000000000000000000000000000000', '0x2', '0x5', '\x30783530363137323639373437393230353436353633363832303431373537343638366637323639373437393030303030303030303030303030303030303030303066646436366434343165666637643431313666653938376630663130383132666336386230366363353030666637316334393232333462396137623862326634353539373139306439376364383566366461613435616339353138626566396637313566346264343134353034623161323164386336383136353430353564663030', 606, 10465292, 0, 1548947468)
+
+ 2022-12-12 21:28:13 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] COMMIT[4.601ms]: COMMIT
+
+ 2022-12-12 21:28:37 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] BEGIN[503.6µs]: BEGIN
+
+ 2022-12-12 21:28:38 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:124)
+[ERROR] INSERT[1.6534ms]: INSERT INTO "blocks" ("hash", "number", "parent_hash", "nonce", "miner", "difficulty", "total_difficulty", "extra_data", "size", "gas_limit", "gas_used", "timestamp") VALUES ('0x8f5bab218b6bb34476f51ca588e9f4553a3a7ce5e13a66c660a5283e97e9a85a', 1, '0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a', '0x0000000000000000', '0x0000000000000000000000000000000000000000', '0x2', '0x3', '\x30783530363137323639373437393230353436353633363832303431373537343638366637323639373437393030303030303030303030303030303030303030303032626266383836313831393730363534656434366533666165306465643431656535336665633730326334373433313938386137616538306536353736663335353236383466303639616638306261313164333633323761616638343664343730353236653461316334363136303162326664346562646364633262373334613031', 606, 10475521, 0, 1548947453): ERROR: duplicate key value violates unique constraint "blocks_pkey" (SQLSTATE=23505)
+
+ 2022-12-12 21:28:39 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:63)
+[ERROR] Error during inserting blocks in DB, err: ERROR: duplicate key value violates unique constraint "blocks_pkey" (SQLSTATE=23505)
+
+ 2022-12-12 21:28:42 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] ROLLBACK[1.6012ms]: ROLLBACK
+
+ 2022-12-12 21:28:47 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:87)
+[INFO] DONE!
+
+ 2022-12-12 21:28:50 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/main.go (line:82)
+[INFO] Took: 2m45.9480065s
+
+ 2022-12-12 21:29:19 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE TABLE[1.1513ms]: CREATE TABLE IF NOT EXISTS "blocks" ("hash" char(66) NOT NULL, "number" bigint NOT NULL, "parent_hash" char(66) NOT NULL, "nonce" varchar NOT NULL, "miner" char(42) NOT NULL, "difficulty" varchar NOT NULL, "total_difficulty" varchar NOT NULL, "extra_data" bytea, "size" bigint NOT NULL, "gas_limit" bigint NOT NULL, "gas_used" bigint NOT NULL, "timestamp" bigint NOT NULL, PRIMARY KEY ("hash"), UNIQUE ("number"))
+
+ 2022-12-12 21:29:19 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[539.7µs]: CREATE INDEX IF NOT EXISTS "number_idx" ON "blocks" ("number")
+
+ 2022-12-12 21:29:19 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[1.2602ms]: CREATE INDEX IF NOT EXISTS "miner_idx" ON "blocks" ("miner")
+
+ 2022-12-12 21:29:19 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE TABLE[507.1µs]: CREATE TABLE IF NOT EXISTS "transactions" ("hash" char(66) NOT NULL, "block_hash" char(66) NOT NULL, "block_number" bigint NOT NULL, "from" char(42) NOT NULL, "to" char(42), "gas" bigint NOT NULL, "gas_used" bigint NOT NULL, "gas_price" bigint NOT NULL, "nonce" bigint NOT NULL, "transaction_index" integer NOT NULL, "value" varchar, "contract_address" char(42), "status" smallint NOT NULL, "timestamp" bigint NOT NULL, PRIMARY KEY ("hash"), FOREIGN KEY ("block_hash") REFERENCES "blocks" ("hash"))
+
+ 2022-12-12 21:29:19 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[1.0908ms]: CREATE INDEX IF NOT EXISTS "from_idx" ON "transactions" ("from")
+
+ 2022-12-12 21:29:19 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[864.9µs]: CREATE INDEX IF NOT EXISTS "to_idx" ON "transactions" ("to")
+
+ 2022-12-12 21:29:19 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[325.9µs]: CREATE INDEX IF NOT EXISTS "block_hash_idx" ON "transactions" ("block_hash")
+
+ 2022-12-12 21:29:19 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[947.7µs]: CREATE INDEX IF NOT EXISTS "block_number_idx" ON "transactions" ("block_number")
+
+ 2022-12-12 21:29:19 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[825.8µs]: CREATE INDEX IF NOT EXISTS "contract_address_idx" ON "transactions" ("contract_address")
+
+ 2022-12-12 21:29:20 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:147)
+[INFO] The number of latest block is 8124035
+
+ 2022-12-12 21:29:20 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] SELECT[1.7355ms]: SELECT "number" FROM "blocks" ORDER BY "number" ASC
+
+ 2022-12-12 21:29:22 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:116)
+[INFO] The number of created jobs is 2
+
+ 2022-12-12 21:29:23 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:12)
+[INFO] New worker is created
+
+ 2022-12-12 21:29:23 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:13)
+[INFO] Number of goroutines: 7
+
+ 2022-12-12 21:29:23 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:12)
+[INFO] New worker is created
+
+ 2022-12-12 21:29:42 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:13)
+[INFO] Number of goroutines: 7
+
+ 2022-12-12 21:30:31 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] BEGIN[9.0740333s]: BEGIN
+
+ 2022-12-12 21:30:34 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:124)
+[ERROR] INSERT[1.5766ms]: INSERT INTO "blocks" ("hash", "number", "parent_hash", "nonce", "miner", "difficulty", "total_difficulty", "extra_data", "size", "gas_limit", "gas_used", "timestamp") VALUES ('0x8f5bab218b6bb34476f51ca588e9f4553a3a7ce5e13a66c660a5283e97e9a85a', 1, '0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a', '0x0000000000000000', '0x0000000000000000000000000000000000000000', '0x2', '0x3', '\x30783530363137323639373437393230353436353633363832303431373537343638366637323639373437393030303030303030303030303030303030303030303032626266383836313831393730363534656434366533666165306465643431656535336665633730326334373433313938386137616538306536353736663335353236383466303639616638306261313164333633323761616638343664343730353236653461316334363136303162326664346562646364633262373334613031', 606, 10475521, 0, 1548947453): ERROR: duplicate key value violates unique constraint "blocks_pkey" (SQLSTATE=23505)
+
+ 2022-12-12 21:30:38 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:63)
+[ERROR] Error during inserting blocks in DB, err: ERROR: duplicate key value violates unique constraint "blocks_pkey" (SQLSTATE=23505)
+
+ 2022-12-12 21:30:41 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] ROLLBACK[1.0534ms]: ROLLBACK
+
+ 2022-12-12 21:30:55 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] BEGIN[525.2µs]: BEGIN
+
+ 2022-12-12 21:30:56 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:124)
+[ERROR] INSERT[1.1146ms]: INSERT INTO "blocks" ("hash", "number", "parent_hash", "nonce", "miner", "difficulty", "total_difficulty", "extra_data", "size", "gas_limit", "gas_used", "timestamp") VALUES ('0xe675f1362d82cdd1ec260b16fb046c17f61d8a84808150f5d715ccce775f575e', 2, '0x8f5bab218b6bb34476f51ca588e9f4553a3a7ce5e13a66c660a5283e97e9a85a', '0x0000000000000000', '0x0000000000000000000000000000000000000000', '0x2', '0x5', '\x30783530363137323639373437393230353436353633363832303431373537343638366637323639373437393030303030303030303030303030303030303030303066646436366434343165666637643431313666653938376630663130383132666336386230366363353030666637316334393232333462396137623862326634353539373139306439376364383566366461613435616339353138626566396637313566346264343134353034623161323164386336383136353430353564663030', 606, 10465292, 0, 1548947468): ERROR: duplicate key value violates unique constraint "blocks_pkey" (SQLSTATE=23505)
+
+ 2022-12-12 21:30:58 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:63)
+[ERROR] Error during inserting blocks in DB, err: ERROR: duplicate key value violates unique constraint "blocks_pkey" (SQLSTATE=23505)
+
+ 2022-12-12 21:31:00 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] ROLLBACK[1.1236ms]: ROLLBACK
+
+ 2022-12-12 21:31:05 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:87)
+[INFO] DONE!
+
+ 2022-12-12 21:31:06 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/main.go (line:82)
+[INFO] Took: 1m46.7219804s
+
+ 2022-12-12 21:46:51 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE TABLE[1.0875ms]: CREATE TABLE IF NOT EXISTS "blocks" ("hash" char(66) NOT NULL, "number" bigint NOT NULL, "parent_hash" char(66) NOT NULL, "nonce" varchar NOT NULL, "miner" char(42) NOT NULL, "difficulty" varchar NOT NULL, "total_difficulty" varchar NOT NULL, "extra_data" bytea, "size" bigint NOT NULL, "gas_limit" bigint NOT NULL, "gas_used" bigint NOT NULL, "timestamp" bigint NOT NULL, PRIMARY KEY ("hash"), UNIQUE ("number"))
+
+ 2022-12-12 21:46:51 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[530.3µs]: CREATE INDEX IF NOT EXISTS "number_idx" ON "blocks" ("number")
+
+ 2022-12-12 21:46:51 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[1.286ms]: CREATE INDEX IF NOT EXISTS "miner_idx" ON "blocks" ("miner")
+
+ 2022-12-12 21:46:51 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE TABLE[504.9µs]: CREATE TABLE IF NOT EXISTS "transactions" ("hash" char(66) NOT NULL, "block_hash" char(66) NOT NULL, "block_number" bigint NOT NULL, "from" char(42) NOT NULL, "to" char(42), "gas" bigint NOT NULL, "gas_used" bigint NOT NULL, "gas_price" bigint NOT NULL, "nonce" bigint NOT NULL, "transaction_index" integer NOT NULL, "value" varchar, "contract_address" char(42), "status" smallint NOT NULL, "timestamp" bigint NOT NULL, PRIMARY KEY ("hash"), FOREIGN KEY ("block_hash") REFERENCES "blocks" ("hash"))
+
+ 2022-12-12 21:46:51 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[1.4181ms]: CREATE INDEX IF NOT EXISTS "from_idx" ON "transactions" ("from")
+
+ 2022-12-12 21:46:51 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[1.022ms]: CREATE INDEX IF NOT EXISTS "to_idx" ON "transactions" ("to")
+
+ 2022-12-12 21:46:51 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[1.0671ms]: CREATE INDEX IF NOT EXISTS "block_hash_idx" ON "transactions" ("block_hash")
+
+ 2022-12-12 21:46:51 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[896.4µs]: CREATE INDEX IF NOT EXISTS "block_number_idx" ON "transactions" ("block_number")
+
+ 2022-12-12 21:46:51 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] CREATE[1.1107ms]: CREATE INDEX IF NOT EXISTS "contract_address_idx" ON "transactions" ("contract_address")
+
+ 2022-12-12 21:46:51 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:152)
+[INFO] The number of latest block is 8124097
+
+ 2022-12-12 21:46:51 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] SELECT[1.5599ms]: SELECT "number" FROM "blocks" ORDER BY "number" ASC
+
+ 2022-12-12 21:46:53 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:121)
+[INFO] The number of created jobs is 2
+
+ 2022-12-12 21:46:53 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:12)
+[INFO] New worker is created
+
+ 2022-12-12 21:46:54 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:13)
+[INFO] Number of goroutines: 7
+
+ 2022-12-12 21:46:54 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:12)
+[INFO] New worker is created
+
+ 2022-12-12 21:46:58 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/workers/workerPool.go (line:13)
+[INFO] Number of goroutines: 7
+
+ 2022-12-12 21:47:29 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] BEGIN[4.9111248s]: BEGIN
+
+ 2022-12-12 21:47:31 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:124)
+[ERROR] INSERT[1.8474ms]: INSERT INTO "blocks" ("hash", "number", "parent_hash", "nonce", "miner", "difficulty", "total_difficulty", "extra_data", "size", "gas_limit", "gas_used", "timestamp") VALUES ('0x8f5bab218b6bb34476f51ca588e9f4553a3a7ce5e13a66c660a5283e97e9a85a', 1, '0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a', '0x0000000000000000', '0x0000000000000000000000000000000000000000', '0x2', '0x3', '\x30783530363137323639373437393230353436353633363832303431373537343638366637323639373437393030303030303030303030303030303030303030303032626266383836313831393730363534656434366533666165306465643431656535336665633730326334373433313938386137616538306536353736663335353236383466303639616638306261313164333633323761616638343664343730353236653461316334363136303162326664346562646364633262373334613031', 606, 10475521, 0, 1548947453): ERROR: duplicate key value violates unique constraint "blocks_pkey" (SQLSTATE=23505)
+
+ 2022-12-12 21:47:38 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:68)
+[ERROR] Error during inserting blocks with numbers [1]in DB, err: ERROR: duplicate key value violates unique constraint "blocks_pkey" (SQLSTATE=23505)
+
+ 2022-12-12 21:48:18 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] ROLLBACK[8.3706ms]: ROLLBACK
+
+ 2022-12-12 21:48:21 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] BEGIN[1.6843ms]: BEGIN
+
+ 2022-12-12 21:48:22 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:124)
+[ERROR] INSERT[1.7813ms]: INSERT INTO "blocks" ("hash", "number", "parent_hash", "nonce", "miner", "difficulty", "total_difficulty", "extra_data", "size", "gas_limit", "gas_used", "timestamp") VALUES ('0xe675f1362d82cdd1ec260b16fb046c17f61d8a84808150f5d715ccce775f575e', 2, '0x8f5bab218b6bb34476f51ca588e9f4553a3a7ce5e13a66c660a5283e97e9a85a', '0x0000000000000000', '0x0000000000000000000000000000000000000000', '0x2', '0x5', '\x30783530363137323639373437393230353436353633363832303431373537343638366637323639373437393030303030303030303030303030303030303030303066646436366434343165666637643431313666653938376630663130383132666336386230366363353030666637316334393232333462396137623862326634353539373139306439376364383566366461613435616339353138626566396637313566346264343134353034623161323164386336383136353430353564663030', 606, 10465292, 0, 1548947468): ERROR: duplicate key value violates unique constraint "blocks_pkey" (SQLSTATE=23505)
+
+ 2022-12-12 21:48:24 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:68)
+[ERROR] Error during inserting blocks with numbers [2]in DB, err: ERROR: duplicate key value violates unique constraint "blocks_pkey" (SQLSTATE=23505)
+
+ 2022-12-12 21:48:26 - C:/Users/Saska/go/pkg/mod/github.com/oiime/logrusbun@v0.1.1/logrusbun.go (line:118)
+[DEBUG] ROLLBACK[511.8µs]: ROLLBACK
+
+ 2022-12-12 21:48:28 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/syncer/syncer.go (line:92)
+[INFO] DONE!
+
+ 2022-12-12 21:48:28 - C:/Users/Saska/source/repos/aleksandragrujic/blockchain-explorer/main.go (line:82)
+[INFO] Took: 1m37.7659813s
+

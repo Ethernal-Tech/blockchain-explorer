@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"ethernal/explorer/config"
 	"fmt"
-	"log"
 
+	logrusbun "github.com/oiime/logrusbun"
+	logrus "github.com/sirupsen/logrus"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
@@ -18,17 +19,28 @@ func InitDb(config config.Config) *bun.DB {
 		config.DbUser, config.DbPassword, config.DbHost, config.DbPort, config.DbName, config.DbSSL)
 
 	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connString)))
+
+	err := sqldb.Ping()
+	if err != nil {
+		logrus.Panic("Cannot connect to DB, err: ", err)
+	}
+
 	db := bun.NewDB(sqldb, pgdialect.New())
 
-	//db.AddQueryHook(bundebug.NewQueryHook(bundebug.WithVerbose(true)))
+	db.AddQueryHook(logrusbun.NewQueryHook(logrusbun.QueryHookOptions{
+		Logger:     logrus.StandardLogger(),
+		QueryLevel: logrus.DebugLevel,
+		ErrorLevel: logrus.ErrorLevel,
+		SlowLevel:  logrus.WarnLevel,
+	}))
 
 	ctx := context.Background()
 	if _, err := db.NewCreateTable().Model((*Block)(nil)).IfNotExists().Exec(ctx); err != nil {
-		log.Println(err)
+		logrus.Panic("Error while creating the table Block, err: ", err)
 	}
 
 	if _, err := db.NewCreateTable().Model((*Transaction)(nil)).IfNotExists().Exec(ctx); err != nil {
-		log.Println(err)
+		logrus.Panic("Error while creating the table Transaction, err: ", err)
 	}
 
 	return db

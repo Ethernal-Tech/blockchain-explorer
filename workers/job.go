@@ -2,10 +2,9 @@ package workers
 
 import (
 	"context"
-	"log"
 )
 
-type ExecutionFn func(ctx context.Context, args interface{}) (interface{}, error)
+type ExecutionFn func(ctx context.Context, args interface{}) interface{}
 
 type Result struct {
 	Value interface{}
@@ -18,13 +17,13 @@ type Job struct {
 }
 
 func (j Job) execute(ctx context.Context) Result {
-	value, err := j.ExecFn(ctx, j.Args)
-	if err != nil {
-		log.Println("Execute error ", err.Error())
-		return Result{
-			Err: err,
-		}
-	}
+	value := j.ExecFn(ctx, j.Args)
+	// if err != nil {
+	// 	logrus.Error("Execute error ", err.Error())
+	// 	return Result{
+	// 		Err: err,
+	// 	}
+	// }
 
 	return Result{
 		Value: value,

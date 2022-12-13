@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"log"
 	"strconv"
+
+	logrus "github.com/sirupsen/logrus"
 )
 
 func ToUint64(str string) uint64 {
@@ -20,13 +21,13 @@ func ToUint64(str string) uint64 {
 
 		res, err = strconv.ParseUint(str[2:], 16, 64)
 		if err != nil {
-			log.Printf("Error converting %s to uint64. %s", str, err)
+			logrus.Panic("Error converting ", str, " to uint64, err: ", err)
 			return 0
 		}
 	} else {
 		res, err = strconv.ParseUint(str, 10, 64)
 		if err != nil {
-			log.Printf("Error converting %s to uint64. %s", str, err)
+			logrus.Panic("Error converting ", str, " to uint64, err: ", str)
 			return 0
 		}
 	}

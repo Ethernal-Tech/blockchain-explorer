@@ -3,7 +3,8 @@ package eth
 import (
 	"ethernal/explorer/db"
 	"ethernal/explorer/utils"
-	"log"
+
+	logrus "github.com/sirupsen/logrus"
 )
 
 type Block struct {
@@ -85,7 +86,7 @@ func CreateDbTransaction(transaction *Transaction, receipt *TransactionReceipt) 
 		transaction.BlockNumber != receipt.BlockNumber ||
 		transaction.TransactionIndex != receipt.TransactionIndex ||
 		transaction.Hash != receipt.TransactionHash {
-		log.Println("Error converting transaction and receipt to DbTransaction")
+		logrus.Panic("Error converting transaction and receipt to DbTransaction")
 		return &db.Transaction{}
 	}
 

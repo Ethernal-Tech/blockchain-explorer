@@ -2,16 +2,15 @@ package syncer
 
 import (
 	"context"
-	"errors"
 	"ethernal/explorer/db"
 	"ethernal/explorer/eth"
-	"log"
 	"math"
 	"math/big"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
+	logrus "github.com/sirupsen/logrus"
 	"github.com/uptrace/bun"
 )
 
@@ -29,11 +28,12 @@ type JobResult struct {
 }
 
 var (
-	errDefault = errors.New("wrong argument type")
-	execFn     = func(ctx context.Context, args interface{}) (interface{}, error) {
+	//errDefault = errors.New("Wrong type for args parameter in exexFn")
+	execFn = func(ctx context.Context, args interface{}) interface{} {
 		jobArgs, ok := args.(JobArgs)
 		if !ok {
-			return nil, errDefault
+			logrus.Panic("Wrong type for args parameter")
+			//return nil, errDefault
 		}
 
 		blocks := GetBlocks(jobArgs, ctx)
@@ -49,7 +49,7 @@ var (
 			dbTransactions[i] = eth.CreateDbTransaction(t, receipts[i])
 		}
 
-		return JobResult{Blocks: dbBlocks, Transactions: dbTransactions}, nil
+		return JobResult{Blocks: dbBlocks, Transactions: dbTransactions}
 	}
 )
 
@@ -105,7 +105,7 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) 
 			for {
 				ioErr := batchCallWithTimeout(&elemSlice, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
 				if ioErr != nil {
-					log.Println("Get transations IO Error", ioErr)
+					logrus.Error("Cannot get transactions from blockchain, err: ", ioErr)
 				}
 				if transactions[0].Hash != "" {
 					break
@@ -128,7 +128,7 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) 
 
 	for _, e := range errors {
 		if e != nil {
-			log.Println("Error batch call: ", e.Error())
+			logrus.Error("Error during batch call, err: ", e.Error())
 		}
 	}
 
@@ -160,7 +160,7 @@ func GetBlocks(jobArgs JobArgs, ctx context.Context) []*eth.Block {
 	for {
 		ioErr := batchCallWithTimeout(&elems, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
 		if ioErr != nil {
-			log.Println("Get blocks IO Error: ", ioErr)
+			logrus.Error("Cannot get blocks from blockchain, err: ", ioErr)
 			continue
 		}
 		if blocks[0].Number != "" {
@@ -172,7 +172,7 @@ func GetBlocks(jobArgs JobArgs, ctx context.Context) []*eth.Block {
 
 	for _, e := range errors {
 		if e != nil {
-			log.Println("Error batch call: ", e.Error())
+			logrus.Error("Error during batch call, err: ", e.Error())
 		}
 	}
 

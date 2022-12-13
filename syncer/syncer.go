@@ -6,7 +6,6 @@ import (
 	"ethernal/explorer/eth"
 	"ethernal/explorer/utils"
 	"ethernal/explorer/workers"
-	"log"
 	"math"
 	"sync"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"database/sql"
 
 	"github.com/ethereum/go-ethereum/rpc"
+	logrus "github.com/sirupsen/logrus"
 	bundb "github.com/uptrace/bun"
 )
 
@@ -34,7 +34,7 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 
 	totalCounter := int(math.Ceil(float64(len(missingBlocks)) / float64(config.Step)))
 	if totalCounter == 0 {
-		log.Println("There are no blocks to sync")
+		logrus.Info("There are no blocks to sync")
 		return
 	}
 	counter := 0
@@ -49,7 +49,7 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 		select {
 		case result, ok := <-wp.Results():
 			if !ok {
-				log.Println("[ERROR] ", result.Err)
+				logrus.Error("err: ", result.Err)
 				continue
 			}
 
@@ -57,15 +57,22 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 			val := result.Value.(JobResult)
 
 			//inserting blocks and transactions in one transaction scope
-			err := db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bundb.Tx) error {
+			_ = db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bundb.Tx) error {
 				_, blockError := tx.NewInsert().Model(&val.Blocks).Exec(ctx)
 				if blockError != nil {
+					var numbers []uint64
+					for _, b := range val.Blocks {
+						numbers = append(numbers, b.Number)
+					}
+
+					logrus.Error("Error during inserting blocks with numbers ", numbers, " in DB, err: ", blockError)
 					return blockError
 				}
 
 				if len(val.Transactions) != 0 {
 					_, transError := tx.NewInsert().Model(&val.Transactions).Exec(ctx)
 					if transError != nil {
+						logrus.Error("Error during inserting transactions in DB, err: ", blockError)
 						return transError
 					}
 				}
@@ -73,16 +80,16 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 				return nil
 			})
 
-			if err != nil {
-				log.Println(err)
-			}
+			// if err != nil {
+			// 	logrus.Error("error: ", err)
+			// }
 
 			//log.Println("Counter result after: ", counter)
 			if counter == totalCounter {
 				wg.Done()
 			}
 		case <-wp.Done:
-			log.Println("DONE")
+			logrus.Info("DONE!")
 			return
 		}
 	}
@@ -110,6 +117,9 @@ func createJobs(missingBlocks []uint64, client *rpc.Client, db *bundb.DB, config
 			},
 		}
 	}
+
+	logrus.Info("The number of created jobs is ", len(jobs))
+
 	return jobs
 }
 
@@ -133,11 +143,12 @@ func getLastBlockFromChain(ctx context.Context, client *rpc.Client, callTimeoutI
 	for {
 		block, err := getLatestBlockFromChainWithTimeout(ctx, client, callTimeoutInSeconds)
 		if err != nil {
-			log.Println("Get latest block IO Error: ", err)
+			logrus.Error("Cannot get the latest block, err: ", err)
 			continue
 		}
 		if block.Number != "" {
 			latestBlock = utils.ToUint64(block.Number)
+			logrus.Info("The number of latest block is ", latestBlock)
 			break
 		}
 	}
