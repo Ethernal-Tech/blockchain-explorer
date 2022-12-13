@@ -6,6 +6,7 @@ import (
 	"ethernal/explorer/config"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
@@ -17,7 +18,7 @@ func InitDb(config config.Config) *bun.DB {
 	connString := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
 		config.DbUser, config.DbPassword, config.DbHost, config.DbPort, config.DbName, config.DbSSL)
 
-	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connString)))
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connString), pgdriver.WithTimeout(0*time.Second)))
 	db := bun.NewDB(sqldb, pgdialect.New())
 
 	//db.AddQueryHook(bundebug.NewQueryHook(bundebug.WithVerbose(true)))

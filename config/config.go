@@ -7,7 +7,8 @@ import (
 )
 
 type Config struct {
-	RPCUrl               string
+	HTTPUrl              string
+	WebSocketUrl         string
 	DbUser               string
 	DbPassword           string
 	DbHost               string
@@ -17,6 +18,7 @@ type Config struct {
 	WorkersCount         uint
 	Step                 uint
 	CallTimeoutInSeconds uint
+	Mode                 string
 }
 
 func LoadConfig() (Config, error) {
@@ -33,7 +35,8 @@ func LoadConfig() (Config, error) {
 	}
 
 	config := Config{
-		RPCUrl:               viper.GetString("RPCUrl"),
+		HTTPUrl:              viper.GetString("HTTPUrl"),
+		WebSocketUrl:         viper.GetString("WebSocketUrl"),
 		DbUser:               viper.GetString("DB_USER"),
 		DbPassword:           viper.GetString("DB_PASSWORD"),
 		DbHost:               viper.GetString("DB_HOST"),
@@ -43,6 +46,7 @@ func LoadConfig() (Config, error) {
 		WorkersCount:         viper.GetUint("WORKERS_COUNT"),
 		Step:                 viper.GetUint("STEP"),
 		CallTimeoutInSeconds: viper.GetUint("CALL_TIMEOUT_IN_SECONDS"),
+		Mode:                 viper.GetString("MODE"),
 	}
 
 	config.fillDefaults()

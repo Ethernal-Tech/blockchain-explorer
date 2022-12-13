@@ -2,6 +2,7 @@ package syncer
 
 import (
 	"context"
+	"ethernal/explorer/common"
 	"ethernal/explorer/config"
 	"ethernal/explorer/eth"
 	"ethernal/explorer/utils"
@@ -18,6 +19,15 @@ import (
 )
 
 func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
+	startingAt := time.Now().UTC()
+	log.Print("Synchronization started")
+	// only for automatic mode - when synch is finished send a signal in channel Done
+	if config.Mode == common.Automatic {
+		defer func() {
+			synch := GetSignalSynchInstance()
+			synch.Done <- struct{}{}
+		}()
+	}
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
@@ -25,18 +35,12 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 	wp := workers.New(config.WorkersCount)
 
 	missingBlocks := getMissingBlocks(ctx, client, db, config.CallTimeoutInSeconds)
-
-	//TEST START
-
-	//missingBlocks = []uint64{15000000}
-
-	//TEST END
-
-	totalCounter := int(math.Ceil(float64(len(missingBlocks)) / float64(config.Step)))
-	if totalCounter == 0 {
-		log.Println("There are no blocks to sync")
+	log.Println("Number of missing blocks: ", len(missingBlocks))
+	if len(missingBlocks) == 0 {
 		return
 	}
+
+	totalCounter := int(math.Ceil(float64(len(missingBlocks)) / float64(config.Step)))
 	counter := 0
 
 	var wg sync.WaitGroup
@@ -56,7 +60,7 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 			counter++
 			val := result.Value.(JobResult)
 
-			//inserting blocks and transactions in one transaction scope
+			// inserting blocks and transactions in one transaction scope
 			err := db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bundb.Tx) error {
 				_, blockError := tx.NewInsert().Model(&val.Blocks).Exec(ctx)
 				if blockError != nil {
@@ -77,16 +81,15 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 				log.Println(err)
 			}
 
-			//log.Println("Counter result after: ", counter)
 			if counter == totalCounter {
 				wg.Done()
 			}
 		case <-wp.Done:
-			log.Println("DONE")
+			log.Println("Synchronization DONE")
+			log.Printf("Took: %s", time.Now().UTC().Sub(startingAt))
 			return
 		}
 	}
-
 }
 
 func createJobs(missingBlocks []uint64, client *rpc.Client, db *bundb.DB, config config.Config) []workers.Job {
@@ -115,10 +118,8 @@ func createJobs(missingBlocks []uint64, client *rpc.Client, db *bundb.DB, config
 
 func getMissingBlocks(ctx context.Context, client *rpc.Client, db *bundb.DB, callTimeoutInSeconds uint) []uint64 {
 	blockNumberFromChain := getLastBlockFromChain(ctx, client, callTimeoutInSeconds)
-	// blockNumberFromChain := uint64(100000)
 	blockNumbersFromDb := []uint64{}
 	db.NewSelect().Table("blocks").Column("number").Order("number ASC").Scan(ctx, &blockNumbersFromDb)
-
 	mb := findMissingBlocks(blockNumberFromChain, &blockNumbersFromDb)
 
 	// log.Println("Missing blocks", len(mb))
