@@ -2,21 +2,18 @@ package main
 
 import (
 	"bytes"
+	"ethernal/explorer/common"
 	"ethernal/explorer/config"
 	"ethernal/explorer/db"
 	"ethernal/explorer/eth"
+	"ethernal/explorer/listener"
 	"ethernal/explorer/syncer"
 	"fmt"
 
 	"os"
-	"time"
 
 	logrus "github.com/sirupsen/logrus"
 )
-
-type Block struct {
-	Number string
-}
 
 type MyFormatter struct{}
 
@@ -75,9 +72,21 @@ func main() {
 
 	db := db.InitDb(config)
 
-	rpcClient := eth.GetClient(config.RPCUrl)
-
-	startingAt := time.Now().UTC()
-	syncer.SyncMissingBlocks(rpcClient, db, config)
-	logrus.Info("Synchronization is completed and took: ", time.Now().UTC().Sub(startingAt))
+	switch config.Mode {
+	case common.Manual:
+		// HTTP connection to blockchain
+		connection := eth.BlockchainNodeConnection{
+			HTTP: eth.GetClient(config.HTTPUrl),
+		}
+		syncer.SyncMissingBlocks(connection.HTTP, db, config)
+	case common.Automatic:
+		// both HTTP and WebSocket connection to blockchain
+		connection := eth.BlockchainNodeConnection{
+			HTTP:      eth.GetClient(config.HTTPUrl),
+			WebSocket: eth.GetClient(config.WebSocketUrl),
+		}
+		listener.ListenForNewBlocks(&connection, db, config)
+	default:
+		logrus.Info("Mode %s is not provided", config.Mode)
+	}
 }

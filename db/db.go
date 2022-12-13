@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"ethernal/explorer/config"
 	"fmt"
+	"time"
 
 	logrusbun "github.com/oiime/logrusbun"
 	logrus "github.com/sirupsen/logrus"
@@ -18,7 +19,7 @@ func InitDb(config config.Config) *bun.DB {
 	connString := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
 		config.DbUser, config.DbPassword, config.DbHost, config.DbPort, config.DbName, config.DbSSL)
 
-	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connString)))
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(connString), pgdriver.WithTimeout(0*time.Second)))
 
 	err := sqldb.Ping()
 	if err != nil {
