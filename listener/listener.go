@@ -6,10 +6,10 @@ import (
 	"ethernal/explorer/eth"
 	"ethernal/explorer/syncer"
 	"ethernal/explorer/utils"
-	"log"
 	"time"
 
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/sirupsen/logrus"
 
 	bundb "github.com/uptrace/bun"
 )
@@ -41,7 +41,7 @@ func ListenForNewBlocks(connection *eth.BlockchainNodeConnection, db *bundb.DB, 
 
 	// listen on channel for new blocks
 	for block := range blocks {
-		log.Println("New block:", utils.ToUint64(block.Number))
+		logrus.Info("New block: ", utils.ToUint64(block.Number))
 		// check if the trigger can start sync or it will be ignored
 		select {
 		// if channel Done contains sync signal, start sync
@@ -61,12 +61,12 @@ func subscribeBlocks(client *rpc.Client, blocks chan BlockHeader, timeout uint) 
 	// subscribe to newHeads event
 	subscription, err := client.EthSubscribe(ctx, blocks, "newHeads")
 	if err != nil {
-		log.Println("Error subscribing to newHeads event:", err)
+		logrus.Error("Error subscribing to newHeads event, error: ", err)
 		return
 	}
 
 	// The subscription will deliver events to the channel. Wait for the
 	// subscription to end for any reason, then loop around to re-establish
 	// the connection.
-	log.Println("Connection with subscription to newHeads event lost: ", <-subscription.Err())
+	logrus.Error("Connection with subscription to newHeads event lost, error: ", <-subscription.Err())
 }

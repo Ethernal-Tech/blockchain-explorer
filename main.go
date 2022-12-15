@@ -37,9 +37,13 @@ func (MyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	//strList := strings.Split(entry.Caller.File, "/")
 	//fileName := strList[len(strList)-1]
 
-	b.WriteString(fmt.Sprintf(" %s - %s (line:%d)\n[%s] %s\n\n",
-		entry.Time.Format("2006-01-02 15:04:05"), entry.Caller.File,
-		entry.Caller.Line, levelList[int(entry.Level)], entry.Message))
+	// b.WriteString(fmt.Sprintf(" %s - %s (line:%d)\n[%s] %s\n\n",
+	// 	entry.Time.Format("2006-01-02 15:04:05"), entry.Caller.File,
+	// 	entry.Caller.Line, levelList[int(entry.Level)], entry.Message))
+	// return b.Bytes(), nil
+
+	b.WriteString(fmt.Sprintf(" %s [%s] %s\n\n",
+		entry.Time.Format("2006-01-02 15:04:05"), levelList[int(entry.Level)], entry.Message))
 	return b.Bytes(), nil
 }
 
@@ -62,8 +66,6 @@ func main() {
 	defer f.Close()
 
 	logrus.SetOutput(f)
-
-	os.Stderr = f
 
 	config, err := config.LoadConfig()
 	if err != nil {
