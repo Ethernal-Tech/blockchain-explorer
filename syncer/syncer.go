@@ -81,7 +81,7 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 				if len(val.Transactions) != 0 {
 					_, transError := tx.NewInsert().Model(&val.Transactions).Exec(ctx)
 					if transError != nil {
-						logrus.Error("Error during inserting transactions in DB, err: ", blockError)
+						logrus.Error("Error during inserting transactions in DB, err: ", transError)
 						return transError
 					}
 				}
@@ -98,7 +98,7 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 			}
 		case <-wp.Done:
 			logrus.Info("Synchronization DONE")
-			logrus.Info("Took: %s", time.Now().UTC().Sub(startingAt))
+			logrus.Info("Took: ", time.Now().UTC().Sub(startingAt))
 			return
 		}
 	}
