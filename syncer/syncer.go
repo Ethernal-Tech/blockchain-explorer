@@ -174,7 +174,7 @@ func findMissingBlocks(blockNumberFromChain uint64, blockNumbersFromDb *[]uint64
 
 	var i uint64
 	if len(*blockNumbersFromDb) == 0 {
-		for i = 1; i <= blockNumberFromChain; i++ {
+		for i = 1; i <= blockNumberFromChain-1; i++ {
 			missingBlocks = append(missingBlocks, i)
 		}
 		return missingBlocks
@@ -189,7 +189,7 @@ func findMissingBlocks(blockNumberFromChain uint64, blockNumbersFromDb *[]uint64
 		}
 	}
 
-	for i = (*blockNumbersFromDb)[len(*blockNumbersFromDb)-1] + 1; i <= blockNumberFromChain; i++ {
+	for i = (*blockNumbersFromDb)[len(*blockNumbersFromDb)-1] + 1; i <= blockNumberFromChain-1; i++ {
 		missingBlocks = append(missingBlocks, i)
 	}
 
