@@ -7,7 +7,6 @@ import (
 	"ethernal/explorer/eth"
 	"ethernal/explorer/utils"
 	"ethernal/explorer/workers"
-	"log"
 	"math"
 	"sync"
 	"time"
@@ -21,7 +20,7 @@ import (
 
 func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 	startingAt := time.Now().UTC()
-	log.Print("Synchronization started")
+	logrus.Info("Synchronization started")
 	// only for automatic mode - when synch is finished send a signal in channel Done
 	if config.Mode == common.Automatic {
 		defer func() {
@@ -36,7 +35,7 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 	wp := workers.New(config.WorkersCount)
 
 	missingBlocks := getMissingBlocks(ctx, client, db, config.CallTimeoutInSeconds)
-	log.Println("Number of missing blocks: ", len(missingBlocks))
+	logrus.Info("Number of missing blocks: ", len(missingBlocks))
 	if len(missingBlocks) == 0 {
 		return
 	}

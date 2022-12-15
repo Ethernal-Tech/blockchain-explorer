@@ -8,7 +8,7 @@ import (
 )
 
 func worker(ctx context.Context, wg *sync.WaitGroup, jobs <-chan Job, results chan<- Result) {
-	logrus.Info("New worker is created")
+	logrus.Debug("New worker is created")
 
 	defer wg.Done()
 	for {
