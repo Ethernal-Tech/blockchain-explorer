@@ -2,6 +2,7 @@ package syncer
 
 import (
 	"context"
+	"database/sql"
 	"ethernal/explorer/common"
 	"ethernal/explorer/config"
 	"ethernal/explorer/eth"
@@ -10,8 +11,6 @@ import (
 	"math"
 	"sync"
 	"time"
-
-	"database/sql"
 
 	"github.com/ethereum/go-ethereum/rpc"
 	logrus "github.com/sirupsen/logrus"
@@ -96,6 +95,7 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 				wg.Done()
 			}
 		case <-wp.Done:
+			// findNewCheckPoint(ctx, db)
 			logrus.Info("Synchronization DONE")
 			logrus.Info("Took: ", time.Now().UTC().Sub(startingAt))
 			return
@@ -133,7 +133,7 @@ func createJobs(missingBlocks []uint64, client *rpc.Client, db *bundb.DB, config
 func getMissingBlocks(ctx context.Context, client *rpc.Client, db *bundb.DB, callTimeoutInSeconds uint) []uint64 {
 	blockNumberFromChain := getLastBlockFromChain(ctx, client, callTimeoutInSeconds)
 	blockNumbersFromDb := []uint64{}
-	db.NewSelect().Table("blocks").Column("number").Order("number ASC").Scan(ctx, &blockNumbersFromDb)
+	db.NewSelect().Table("blocks").Column("number").Order("number ASC").Where("number >= ?", CheckPoint).Scan(ctx, &blockNumbersFromDb)
 	mb := findMissingBlocks(blockNumberFromChain, &blockNumbersFromDb)
 
 	// log.Println("Missing blocks", len(mb))
@@ -173,14 +173,14 @@ func findMissingBlocks(blockNumberFromChain uint64, blockNumbersFromDb *[]uint64
 
 	var i uint64
 	if len(*blockNumbersFromDb) == 0 {
-		for i = 1; i <= blockNumberFromChain-1; i++ {
+		for i = CheckPoint; i <= blockNumberFromChain-1; i++ {
 			missingBlocks = append(missingBlocks, i)
 		}
 		return missingBlocks
 	}
 
 	counter := 0
-	for i = 1; i <= (*blockNumbersFromDb)[len(*blockNumbersFromDb)-1]; i++ {
+	for i = CheckPoint; i <= (*blockNumbersFromDb)[len(*blockNumbersFromDb)-1]; i++ {
 		if i < (*blockNumbersFromDb)[counter] {
 			missingBlocks = append(missingBlocks, i)
 		} else {
@@ -193,4 +193,23 @@ func findMissingBlocks(blockNumberFromChain uint64, blockNumbersFromDb *[]uint64
 	}
 
 	return missingBlocks
+}
+
+func findNewCheckPoint(ctx context.Context, db *bundb.DB) {
+	blockNumbersFromDb := []uint64{}
+	db.NewSelect().Table("blocks").Column("number").Order("number ASC").Where("number >= ?", CheckPoint).Scan(ctx, &blockNumbersFromDb)
+
+	var i uint64
+
+	counter := 0
+	for i = CheckPoint; i <= (blockNumbersFromDb)[len(blockNumbersFromDb)-1]; i++ {
+		if i < (blockNumbersFromDb)[counter] {
+			CheckPoint = i
+			return
+		} else {
+			counter++
+		}
+	}
+
+	CheckPoint = (blockNumbersFromDb)[len(blockNumbersFromDb)-1]
 }
