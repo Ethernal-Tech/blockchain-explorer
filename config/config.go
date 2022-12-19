@@ -19,6 +19,8 @@ type Config struct {
 	Step                 uint
 	CallTimeoutInSeconds uint
 	Mode                 string
+	CheckPointDistance   uint
+	CheckPointWindow     uint
 }
 
 func LoadConfig() (Config, error) {
@@ -47,6 +49,8 @@ func LoadConfig() (Config, error) {
 		Step:                 viper.GetUint("STEP"),
 		CallTimeoutInSeconds: viper.GetUint("CALL_TIMEOUT_IN_SECONDS"),
 		Mode:                 viper.GetString("MODE"),
+		CheckPointDistance:   viper.GetUint("CHECKPOINT_DISTANCE"),
+		CheckPointWindow:     viper.GetUint("CHECKPOINT_WINDOW"),
 	}
 
 	config.fillDefaults()

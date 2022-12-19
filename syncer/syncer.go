@@ -33,7 +33,7 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 
 	wp := workers.New(config.WorkersCount)
 
-	missingBlocks := getMissingBlocks(ctx, client, db, config.CallTimeoutInSeconds)
+	missingBlocks, latestBlock := getMissingBlocks(ctx, client, db, config.CallTimeoutInSeconds)
 	logrus.Info("Number of missing blocks: ", len(missingBlocks))
 	if len(missingBlocks) == 0 {
 		return
@@ -63,7 +63,7 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 			counter++
 			val := result.Value.(JobResult)
 
-			//inserting blocks and transactions in one transaction scope
+			// inserting blocks and transactions in one transaction scope
 			_ = db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bundb.Tx) error {
 				_, blockError := tx.NewInsert().Model(&val.Blocks).Exec(ctx)
 				if blockError != nil {
@@ -87,15 +87,14 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 				return nil
 			})
 
-			// if err != nil {
-			// 	logrus.Error("error: ", err)
-			// }
-
 			if counter == totalCounter {
 				wg.Done()
 			}
 		case <-wp.Done:
-			// findNewCheckPoint(ctx, db)
+			// set a new checkpoint, if there are enough new blocks since the last checkpoint
+			if (latestBlock - CheckPoint) > (uint64)(config.CheckPointWindow) {
+				findNewCheckPoint(ctx, db, config.CheckPointDistance)
+			}
 			logrus.Info("Synchronization DONE")
 			logrus.Info("Took: ", time.Now().UTC().Sub(startingAt))
 			return
@@ -130,7 +129,7 @@ func createJobs(missingBlocks []uint64, client *rpc.Client, db *bundb.DB, config
 	return jobs
 }
 
-func getMissingBlocks(ctx context.Context, client *rpc.Client, db *bundb.DB, callTimeoutInSeconds uint) []uint64 {
+func getMissingBlocks(ctx context.Context, client *rpc.Client, db *bundb.DB, callTimeoutInSeconds uint) ([]uint64, uint64) {
 	blockNumberFromChain := getLastBlockFromChain(ctx, client, callTimeoutInSeconds)
 	blockNumbersFromDb := []uint64{}
 	db.NewSelect().Table("blocks").Column("number").Order("number ASC").Where("number >= ?", CheckPoint).Scan(ctx, &blockNumbersFromDb)
@@ -140,7 +139,7 @@ func getMissingBlocks(ctx context.Context, client *rpc.Client, db *bundb.DB, cal
 	// log.Println(mb[0])
 	// log.Println(mb[len(mb)-1])
 
-	return mb
+	return mb, blockNumberFromChain
 }
 
 func getLastBlockFromChain(ctx context.Context, client *rpc.Client, callTimeoutInSeconds uint) uint64 {
@@ -195,14 +194,21 @@ func findMissingBlocks(blockNumberFromChain uint64, blockNumbersFromDb *[]uint64
 	return missingBlocks
 }
 
-func findNewCheckPoint(ctx context.Context, db *bundb.DB) {
+func findNewCheckPoint(ctx context.Context, db *bundb.DB, checkPointDistance uint) {
 	blockNumbersFromDb := []uint64{}
 	db.NewSelect().Table("blocks").Column("number").Order("number ASC").Where("number >= ?", CheckPoint).Scan(ctx, &blockNumbersFromDb)
 
-	var i uint64
+	// not enough blocks added to the database to move the checkpoint
+	if (len(blockNumbersFromDb) - (int)(checkPointDistance)) <= 0 {
+		return
+	}
+	// the closest block to the last block in database at a certain distance
+	largestPossibleCheckPoint := (blockNumbersFromDb)[len(blockNumbersFromDb)-1] - (uint64)(checkPointDistance)
 
+	// if there is a missing block before the largest possible checkpoint, set it as a new checkpoint
+	var i uint64
 	counter := 0
-	for i = CheckPoint; i <= (blockNumbersFromDb)[len(blockNumbersFromDb)-1]; i++ {
+	for i = CheckPoint; i <= largestPossibleCheckPoint; i++ {
 		if i < (blockNumbersFromDb)[counter] {
 			CheckPoint = i
 			return
@@ -211,5 +217,5 @@ func findNewCheckPoint(ctx context.Context, db *bundb.DB) {
 		}
 	}
 
-	CheckPoint = (blockNumbersFromDb)[len(blockNumbersFromDb)-1]
+	CheckPoint = largestPossibleCheckPoint
 }

@@ -23,4 +23,4 @@ func GetSignalSynchInstance() *signalSynch {
 	return synchInstance
 }
 
-var CheckPoint uint64 = 8100000
+var CheckPoint uint64 = 1
