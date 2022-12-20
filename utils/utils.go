@@ -3,7 +3,7 @@ package utils
 import (
 	"strconv"
 
-	logrus "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func ToUint64(str string) uint64 {

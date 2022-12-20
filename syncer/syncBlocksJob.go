@@ -10,7 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
-	logrus "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/uptrace/bun"
 )
 

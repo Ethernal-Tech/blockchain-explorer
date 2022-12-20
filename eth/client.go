@@ -2,7 +2,7 @@ package eth
 
 import (
 	"github.com/ethereum/go-ethereum/rpc"
-	logrus "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type BlockchainNodeConnection struct {

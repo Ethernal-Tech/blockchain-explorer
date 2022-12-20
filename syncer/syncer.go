@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/rpc"
-	logrus "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	bundb "github.com/uptrace/bun"
 )
 

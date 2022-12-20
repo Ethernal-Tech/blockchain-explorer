@@ -4,7 +4,7 @@ import (
 	"ethernal/explorer/db"
 	"ethernal/explorer/utils"
 
-	logrus "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type Block struct {
