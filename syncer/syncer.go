@@ -93,7 +93,7 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 		case <-wp.Done:
 			// set a new checkpoint, if there are enough new blocks since the last checkpoint
 			if (latestBlock - CheckPoint) > (uint64)(config.CheckPointWindow) {
-				findNewCheckPoint(ctx, db, config.CheckPointDistance)
+				findNewCheckPoint(ctx, db)
 			}
 			logrus.Info("Synchronization DONE")
 			logrus.Info("Took: ", time.Now().UTC().Sub(startingAt))
@@ -194,21 +194,18 @@ func findMissingBlocks(blockNumberFromChain uint64, blockNumbersFromDb *[]uint64
 	return missingBlocks
 }
 
-func findNewCheckPoint(ctx context.Context, db *bundb.DB, checkPointDistance uint) {
+func findNewCheckPoint(ctx context.Context, db *bundb.DB) {
 	blockNumbersFromDb := []uint64{}
 	db.NewSelect().Table("blocks").Column("number").Order("number ASC").Where("number >= ?", CheckPoint).Scan(ctx, &blockNumbersFromDb)
 
 	// not enough blocks added to the database to move the checkpoint
-	if (len(blockNumbersFromDb) - (int)(checkPointDistance)) <= 0 {
+	if (len(blockNumbersFromDb)) <= 1 {
 		return
 	}
-	// the closest block to the last block in database at a certain distance
-	largestPossibleCheckPoint := (blockNumbersFromDb)[len(blockNumbersFromDb)-1] - (uint64)(checkPointDistance)
 
-	// if there is a missing block before the largest possible checkpoint, set it as a new checkpoint
 	var i uint64
 	counter := 0
-	for i = CheckPoint; i <= largestPossibleCheckPoint; i++ {
+	for i = CheckPoint; i <= (blockNumbersFromDb)[len(blockNumbersFromDb)-1]; i++ {
 		if i < (blockNumbersFromDb)[counter] {
 			CheckPoint = i
 			return
@@ -217,5 +214,5 @@ func findNewCheckPoint(ctx context.Context, db *bundb.DB, checkPointDistance uin
 		}
 	}
 
-	CheckPoint = largestPossibleCheckPoint
+	CheckPoint = (blockNumbersFromDb)[len(blockNumbersFromDb)-1]
 }
