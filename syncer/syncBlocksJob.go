@@ -28,12 +28,10 @@ type JobResult struct {
 }
 
 var (
-	//errDefault = errors.New("Wrong type for args parameter in exexFn")
 	execFn = func(ctx context.Context, args interface{}) interface{} {
 		jobArgs, ok := args.(JobArgs)
 		if !ok {
 			logrus.Panic("Wrong type for args parameter")
-			//return nil, errDefault
 		}
 
 		blocks := GetBlocks(jobArgs, ctx)
@@ -114,18 +112,6 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) 
 		}
 	}
 
-	// if len(elems) != 0 {
-	// 	for {
-	// 		ioErr := batchCallWithTimeout(&elems, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
-	// 		if ioErr != nil {
-	// 			log.Println("Get transations IO Error", ioErr)
-	// 		}
-	// 		if transactions[0].Hash != "" {
-	// 			break
-	// 		}
-	// 	}
-	// }
-
 	for _, e := range errors {
 		if e != nil {
 			logrus.Error("Error during batch call, err: ", e.Error())
@@ -155,8 +141,6 @@ func GetBlocks(jobArgs JobArgs, ctx context.Context) []*eth.Block {
 		errors = append(errors, err)
 	}
 
-	//log.Println("Before batch call: [", jobArgs.BlockNumbers[0], ":", jobArgs.BlockNumbers[len(jobArgs.BlockNumbers)-1], "]")
-
 	for {
 		ioErr := batchCallWithTimeout(&elems, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
 		if ioErr != nil {
@@ -167,8 +151,6 @@ func GetBlocks(jobArgs JobArgs, ctx context.Context) []*eth.Block {
 			break
 		}
 	}
-
-	//log.Println("After batch call: ", jobArgs.BlockNumbers[0])
 
 	for _, e := range errors {
 		if e != nil {

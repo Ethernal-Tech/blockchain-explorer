@@ -1,6 +1,7 @@
 package config
 
 import (
+	"flag"
 	"path/filepath"
 
 	"github.com/spf13/viper"
@@ -34,23 +35,8 @@ func LoadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-
-	config := Config{
-		HTTPUrl:              viper.GetString("HTTPUrl"),
-		WebSocketUrl:         viper.GetString("WebSocketUrl"),
-		DbUser:               viper.GetString("DB_USER"),
-		DbPassword:           viper.GetString("DB_PASSWORD"),
-		DbHost:               viper.GetString("DB_HOST"),
-		DbPort:               viper.GetString("DB_PORT"),
-		DbName:               viper.GetString("DB_NAME"),
-		DbSSL:                viper.GetString("DB_SSL"),
-		WorkersCount:         viper.GetUint("WORKERS_COUNT"),
-		Step:                 viper.GetUint("STEP"),
-		CallTimeoutInSeconds: viper.GetUint("CALL_TIMEOUT_IN_SECONDS"),
-		Mode:                 viper.GetString("MODE"),
-		CheckPointWindow:     viper.GetUint("CHECKPOINT_WINDOW"),
-	}
-
+	config := Config{}
+	config.fillConfigurations()
 	config.fillDefaults()
 
 	return config, nil
@@ -60,6 +46,23 @@ func LoadConfig() (Config, error) {
 func read(file string) error {
 	viper.SetConfigFile(file)
 	return viper.ReadInConfig()
+}
+
+func (cfg *Config) fillConfigurations() {
+	flag.StringVar(&cfg.HTTPUrl, "http.addr", viper.GetString("HTTPUrl"), "Blockchain node HTTP address")
+	flag.StringVar(&cfg.WebSocketUrl, "ws.addr", viper.GetString("WebSocketUrl"), "Blockchain node WebSocket address")
+	flag.StringVar(&cfg.DbUser, "db.user", viper.GetString("DB_USER"), "Database user")
+	flag.StringVar(&cfg.DbPassword, "db.password", viper.GetString("DB_PASSWORD"), "Database user password")
+	flag.StringVar(&cfg.DbHost, "db.host", viper.GetString("DB_HOST"), "Database server host")
+	flag.StringVar(&cfg.DbPort, "db.port", viper.GetString("DB_PORT"), "Database server port")
+	flag.StringVar(&cfg.DbName, "db.name", viper.GetString("DB_NAME"), "Database name")
+	flag.StringVar(&cfg.DbSSL, "db.ssl", viper.GetString("DB_SSL"), "Enable (verify-full) or disable TLS")
+	flag.StringVar(&cfg.Mode, "mode", viper.GetString("MODE"), "Manual or automatic mode of application")
+	flag.UintVar(&cfg.WorkersCount, "workers value", viper.GetUint("WORKERS_COUNT"), "Number of goroutines to use for fetching data from blockchain")
+	flag.UintVar(&cfg.Step, "step value", viper.GetUint("STEP"), "Number of requests in one batch sent to the blockchain")
+	flag.UintVar(&cfg.CallTimeoutInSeconds, "timeout value", viper.GetUint("CALL_TIMEOUT_IN_SECONDS"), "Sets a timeout used for requests sent to the blockchain")
+	flag.UintVar(&cfg.CheckPointWindow, "checkpoint.window value", viper.GetUint("CHECKPOINT_WINDOW"), "Sets after how many created blocks the checkpoint is determined")
+	flag.Parse()
 }
 
 func (cfg *Config) fillDefaults() {

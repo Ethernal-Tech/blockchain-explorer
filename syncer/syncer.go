@@ -17,6 +17,7 @@ import (
 	bundb "github.com/uptrace/bun"
 )
 
+// SyncMissingBlocks keeps the database in sync with the blockchain.
 func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 	startingAt := time.Now().UTC()
 	logrus.Info("Synchronization started")
@@ -40,10 +41,6 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 	}
 
 	totalCounter := int(math.Ceil(float64(len(missingBlocks)) / float64(config.Step)))
-	if totalCounter == 0 {
-		logrus.Info("There are no blocks to sync")
-		return
-	}
 	counter := 0
 
 	var wg sync.WaitGroup
@@ -129,15 +126,12 @@ func createJobs(missingBlocks []uint64, client *rpc.Client, db *bundb.DB, config
 	return jobs
 }
 
+// getMissingBlock returns the numbers of the missing blocks in the database and the number of the latest block on the blockchain.
 func getMissingBlocks(ctx context.Context, client *rpc.Client, db *bundb.DB, callTimeoutInSeconds uint) ([]uint64, uint64) {
 	blockNumberFromChain := getLastBlockFromChain(ctx, client, callTimeoutInSeconds)
 	blockNumbersFromDb := []uint64{}
 	db.NewSelect().Table("blocks").Column("number").Order("number ASC").Where("number >= ?", CheckPoint).Scan(ctx, &blockNumbersFromDb)
 	mb := findMissingBlocks(blockNumberFromChain, &blockNumbersFromDb)
-
-	// log.Println("Missing blocks", len(mb))
-	// log.Println(mb[0])
-	// log.Println(mb[len(mb)-1])
 
 	return mb, blockNumberFromChain
 }
@@ -167,6 +161,7 @@ func getLatestBlockFromChainWithTimeout(ctx context.Context, client *rpc.Client,
 	return block, err
 }
 
+// findMissingBlock determines the missing blocks in the database and returns their numbers.
 func findMissingBlocks(blockNumberFromChain uint64, blockNumbersFromDb *[]uint64) []uint64 {
 	missingBlocks := []uint64{}
 
@@ -178,6 +173,7 @@ func findMissingBlocks(blockNumberFromChain uint64, blockNumbersFromDb *[]uint64
 		return missingBlocks
 	}
 
+	// check if any block is missing until the last block in the database
 	counter := 0
 	for i = CheckPoint; i <= (*blockNumbersFromDb)[len(*blockNumbersFromDb)-1]; i++ {
 		if i < (*blockNumbersFromDb)[counter] {
@@ -194,8 +190,10 @@ func findMissingBlocks(blockNumberFromChain uint64, blockNumbersFromDb *[]uint64
 	return missingBlocks
 }
 
+// findNewCheckPoint determines the new checkpoint - starting block for the next synch.
 func findNewCheckPoint(ctx context.Context, db *bundb.DB) {
 	blockNumbersFromDb := []uint64{}
+	// fetch block numbers starting from checkpoint
 	db.NewSelect().Table("blocks").Column("number").Order("number ASC").Where("number >= ?", CheckPoint).Scan(ctx, &blockNumbersFromDb)
 
 	// not enough blocks added to the database to move the checkpoint
@@ -208,6 +206,7 @@ func findNewCheckPoint(ctx context.Context, db *bundb.DB) {
 	for i = CheckPoint; i <= (blockNumbersFromDb)[len(blockNumbersFromDb)-1]; i++ {
 		if i < (blockNumbersFromDb)[counter] {
 			CheckPoint = i
+			logrus.Debug("Checkpoint: ", CheckPoint)
 			return
 		} else {
 			counter++
@@ -215,4 +214,5 @@ func findNewCheckPoint(ctx context.Context, db *bundb.DB) {
 	}
 
 	CheckPoint = (blockNumbersFromDb)[len(blockNumbersFromDb)-1]
+	logrus.Debug("Checkpoint: ", CheckPoint)
 }
