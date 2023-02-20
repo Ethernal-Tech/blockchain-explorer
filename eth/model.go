@@ -31,14 +31,14 @@ type Block struct {
 }
 
 type Transaction struct {
-	Hash        string
-	BlockHash   string
-	BlockNumber string
-	From        string
-	To          string
-	Gas         string
-	GasPrice    string
-	// Input            string
+	Hash             string
+	BlockHash        string
+	BlockNumber      string
+	From             string
+	To               string
+	Gas              string
+	GasPrice         string
+	Input            string
 	Nonce            string
 	TransactionIndex string
 	Value            string
@@ -105,5 +105,6 @@ func CreateDbTransaction(transaction *Transaction, receipt *TransactionReceipt) 
 		ContractAddress:  receipt.ContractAddress,
 		Status:           utils.ToUint64(receipt.Status),
 		Timestamp:        utils.ToUint64(transaction.Timestamp),
+		InputData:        transaction.Input,
 	}
 }
