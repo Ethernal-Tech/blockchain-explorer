@@ -119,16 +119,6 @@ func (*Block) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuery)
 
 	_, err = query.DB().NewCreateIndex().
 		Model((*Block)(nil)).
-		Index("number_idx").
-		Column("number").
-		IfNotExists().
-		Exec(ctx)
-	if err != nil {
-		return err
-	}
-
-	_, err = query.DB().NewCreateIndex().
-		Model((*Block)(nil)).
 		Index("miner_idx").
 		Column("miner").
 		IfNotExists().
