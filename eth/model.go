@@ -66,18 +66,19 @@ type TransactionReceipt struct {
 
 func CreateDbBlock(block *Block) *db.Block {
 	return &db.Block{
-		Hash:            block.Hash,
-		Number:          utils.ToUint64(block.Number),
-		ParentHash:      block.ParentHash,
-		Nonce:           block.Nonce,
-		Miner:           block.Miner,
-		Difficulty:      block.Difficulty,
-		TotalDifficulty: block.TotalDifficulty,
-		ExtraData:       []byte(block.ExtraData),
-		Size:            utils.ToUint64(block.Size),
-		GasLimit:        utils.ToUint64(block.GasLimit),
-		GasUsed:         utils.ToUint64(block.GasUsed),
-		Timestamp:       utils.ToUint64(block.Timestamp),
+		Hash:              block.Hash,
+		Number:            utils.ToUint64(block.Number),
+		ParentHash:        block.ParentHash,
+		Nonce:             block.Nonce,
+		Miner:             block.Miner,
+		Difficulty:        block.Difficulty,
+		TotalDifficulty:   block.TotalDifficulty,
+		ExtraData:         []byte(block.ExtraData),
+		Size:              utils.ToUint64(block.Size),
+		GasLimit:          utils.ToUint64(block.GasLimit),
+		GasUsed:           utils.ToUint64(block.GasUsed),
+		Timestamp:         utils.ToUint64(block.Timestamp),
+		TransactionsCount: len(block.Transactions),
 	}
 }
 
