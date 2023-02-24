@@ -43,6 +43,6 @@ func (MyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 
 func Setup() {
 	logrus.SetReportCaller(true)       // this line is for logging filename and line number
-	logrus.SetLevel(logrus.DebugLevel) // setting log level
+	logrus.SetLevel(logrus.InfoLevel)  // setting log level
 	logrus.SetFormatter(MyFormatter{}) // setting custom formatter
 }
