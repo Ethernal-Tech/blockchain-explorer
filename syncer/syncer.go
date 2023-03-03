@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"ethernal/explorer/common"
 	"ethernal/explorer/config"
+	"ethernal/explorer/db"
 	"ethernal/explorer/eth"
 	"ethernal/explorer/utils"
 	"ethernal/explorer/workers"
@@ -89,8 +90,10 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 			}
 		case <-wp.Done:
 			// set a new checkpoint, if there are enough new blocks since the last checkpoint
-			if (latestBlock - CheckPoint) > (uint64)(config.CheckPointWindow) {
-				findNewCheckPoint(ctx, db)
+			if config.Mode == common.Automatic {
+				if (latestBlock - CheckPoint) > (uint64)(config.CheckPointWindow) {
+					findNewCheckPoint(client, db, ctx, config, latestBlock)
+				}
 			}
 			logrus.Info("Synchronization DONE")
 			logrus.Info("Took: ", time.Now().UTC().Sub(startingAt))
@@ -191,20 +194,69 @@ func findMissingBlocks(blockNumberFromChain uint64, blockNumbersFromDb *[]uint64
 }
 
 // findNewCheckPoint determines the new checkpoint - starting block for the next synch.
-func findNewCheckPoint(ctx context.Context, db *bundb.DB) {
-	blockNumbersFromDb := []uint64{}
-	// fetch block numbers starting from checkpoint
-	db.NewSelect().Table("blocks").Column("number").Order("number ASC").Where("number >= ?", CheckPoint).Scan(ctx, &blockNumbersFromDb)
-
+func findNewCheckPoint(client *rpc.Client, database *bundb.DB, ctx context.Context, config config.Config, latestBlock uint64) {
+	startingAt := time.Now().UTC()
+	maxBlock := latestBlock - uint64(config.CheckPointDistance)
+	blocksFromDb := []db.Block{}
+	// fetch numbers and hashes of the specified number of blocks
+	database.NewSelect().Table("blocks").Column("number", "hash").Order("number ASC").Where("number >= ? AND number <= ?", CheckPoint, maxBlock).Limit(int(config.CheckPointWindow)).Scan(ctx, &blocksFromDb)
 	// not enough blocks added to the database to move the checkpoint
-	if (len(blockNumbersFromDb)) <= 1 {
+	if (len(blocksFromDb)) <= 1 {
+		return
+	}
+
+	blockNumbers := []uint64{}
+	for _, block := range blocksFromDb {
+		blockNumbers = append(blockNumbers, block.Number)
+	}
+
+	jobArgs := JobArgs{
+		BlockNumbers:         blockNumbers,
+		Client:               client,
+		Db:                   database,
+		Step:                 config.Step,
+		CallTimeoutInSeconds: config.CallTimeoutInSeconds,
+	}
+	// fetch specified blocks from the blockchain
+	blocksFromBlockchain := GetBlocks(jobArgs, ctx)
+
+	numbersToDelete := []uint64{}
+	// compare hashes of blocks in the database with hashes on the blockchain
+	// if they do not match, the block number is added for deletion
+	for i := range blockNumbers {
+		if blocksFromDb[i].Hash != blocksFromBlockchain[i].Hash {
+			numbersToDelete = append(numbersToDelete, blocksFromDb[i].Number)
+		}
+	}
+
+	if len(numbersToDelete) != 0 {
+		logrus.Debug("Deleting blocks: ", numbersToDelete)
+		startDeletingAt := time.Now().UTC()
+		// deleting blocks and transactions in one transaction scope
+		_ = database.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bundb.Tx) error {
+			_, transError := tx.NewDelete().Table("transactions").Where("block_number IN (?)", bundb.In(numbersToDelete)).Exec(ctx)
+			if transError != nil {
+				logrus.Error("Error during deleting transactions from DB, err: ", transError)
+				return transError
+			}
+
+			_, blockError := tx.NewDelete().Table("blocks").Where("number IN (?)", bundb.In(numbersToDelete)).Exec(ctx)
+			if blockError != nil {
+				logrus.Error("Error during deleting blocks from DB, err: ", blockError)
+				return blockError
+			}
+
+			return nil
+		})
+		logrus.Debug("Deleting took: ", time.Now().UTC().Sub(startDeletingAt))
+		logrus.Debug("Validation took: ", time.Now().UTC().Sub(startingAt))
 		return
 	}
 
 	var i uint64
 	counter := 0
-	for i = CheckPoint; i <= (blockNumbersFromDb)[len(blockNumbersFromDb)-1]; i++ {
-		if i < (blockNumbersFromDb)[counter] {
+	for i = CheckPoint; i <= (blockNumbers)[len(blockNumbers)-1]; i++ {
+		if i < (blockNumbers)[counter] {
 			CheckPoint = i
 			logrus.Debug("Checkpoint: ", CheckPoint)
 			return
@@ -213,6 +265,7 @@ func findNewCheckPoint(ctx context.Context, db *bundb.DB) {
 		}
 	}
 
-	CheckPoint = (blockNumbersFromDb)[len(blockNumbersFromDb)-1]
+	CheckPoint = (blockNumbers)[len(blockNumbers)-1]
 	logrus.Debug("Checkpoint: ", CheckPoint)
+	logrus.Debug("Validation took: ", time.Now().UTC().Sub(startingAt))
 }
