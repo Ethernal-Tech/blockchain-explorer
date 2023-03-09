@@ -230,7 +230,7 @@ func findNewCheckPoint(client *rpc.Client, database *bundb.DB, ctx context.Conte
 	}
 
 	if len(numbersToDelete) != 0 {
-		logrus.Debug("Deleting blocks: ", numbersToDelete)
+		logrus.Info("Deleting blocks: ", numbersToDelete)
 		startDeletingAt := time.Now().UTC()
 		// deleting blocks and transactions in one transaction scope
 		_ = database.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bundb.Tx) error {
@@ -258,7 +258,7 @@ func findNewCheckPoint(client *rpc.Client, database *bundb.DB, ctx context.Conte
 	for i = CheckPoint; i <= (blockNumbers)[len(blockNumbers)-1]; i++ {
 		if i < (blockNumbers)[counter] {
 			CheckPoint = i
-			logrus.Debug("Checkpoint: ", CheckPoint)
+			logrus.Info("Checkpoint: ", CheckPoint)
 			return
 		} else {
 			counter++
@@ -266,6 +266,6 @@ func findNewCheckPoint(client *rpc.Client, database *bundb.DB, ctx context.Conte
 	}
 
 	CheckPoint = (blockNumbers)[len(blockNumbers)-1]
-	logrus.Debug("Checkpoint: ", CheckPoint)
+	logrus.Info("Checkpoint: ", CheckPoint)
 	logrus.Debug("Validation took: ", time.Now().UTC().Sub(startingAt))
 }

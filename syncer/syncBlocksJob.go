@@ -104,6 +104,7 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) 
 				ioErr := batchCallWithTimeout(&elemSlice, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
 				if ioErr != nil {
 					logrus.Error("Cannot get transactions from blockchain, err: ", ioErr)
+					continue
 				}
 				if transactions[0].Hash != "" {
 					break
