@@ -47,7 +47,6 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 	var wg sync.WaitGroup
 
 	go wp.GenerateFrom(createJobs(missingBlocks, client, db, config))
-
 	go wp.Run(ctx, &wg)
 
 	for {
@@ -59,7 +58,13 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 			}
 
 			counter++
-			val := result.Value.(JobResult)
+			val, isOk := result.Value.(JobResult)
+			if !isOk {
+				if counter == totalCounter {
+					wg.Done()
+				}
+				continue
+			}
 
 			// inserting blocks and transactions in one transaction scope
 			_ = db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bundb.Tx) error {
@@ -219,6 +224,9 @@ func findNewCheckPoint(client *rpc.Client, database *bundb.DB, ctx context.Conte
 	}
 	// fetch specified blocks from the blockchain
 	blocksFromBlockchain := GetBlocks(jobArgs, ctx)
+	if blocksFromBlockchain == nil {
+		return
+	}
 
 	numbersToDelete := []uint64{}
 	// compare hashes of blocks in the database with hashes on the blockchain
@@ -248,8 +256,8 @@ func findNewCheckPoint(client *rpc.Client, database *bundb.DB, ctx context.Conte
 
 			return nil
 		})
-		logrus.Debug("Deleting took: ", time.Now().UTC().Sub(startDeletingAt))
-		logrus.Debug("Validation took: ", time.Now().UTC().Sub(startingAt))
+		logrus.Info("Deleting took: ", time.Now().UTC().Sub(startDeletingAt))
+		logrus.Info("Validation took: ", time.Now().UTC().Sub(startingAt))
 		return
 	}
 
@@ -267,5 +275,5 @@ func findNewCheckPoint(client *rpc.Client, database *bundb.DB, ctx context.Conte
 
 	CheckPoint = (blockNumbers)[len(blockNumbers)-1]
 	logrus.Info("Checkpoint: ", CheckPoint)
-	logrus.Debug("Validation took: ", time.Now().UTC().Sub(startingAt))
+	logrus.Info("Validation took: ", time.Now().UTC().Sub(startingAt))
 }
