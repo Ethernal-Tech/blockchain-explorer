@@ -58,10 +58,22 @@ type TransactionReceipt struct {
 	CumulativeGasUsed string
 	GasUsed           string
 	ContractAddress   string
-	// Logs              string
+	Logs              []Log
 	// LogsBloom         string
 	// Root   string
 	Status string
+}
+
+type Log struct {
+	Address          string
+	Topics           []string
+	Data             string
+	BlockNumber      string
+	TransactionHash  string
+	TransactionIndex string
+	BlockHash        string
+	LogIndex         string
+	//Removed          bool
 }
 
 func CreateDbBlock(block *Block) *db.Block {
@@ -108,4 +120,42 @@ func CreateDbTransaction(transaction *Transaction, receipt *TransactionReceipt) 
 		Timestamp:        utils.ToUint64(transaction.Timestamp),
 		InputData:        transaction.Input,
 	}
+}
+
+func CreateDbLog(transaction *Transaction, receipt *TransactionReceipt) []*db.Log {
+	if transaction.BlockHash != receipt.BlockHash ||
+		transaction.BlockNumber != receipt.BlockNumber ||
+		transaction.TransactionIndex != receipt.TransactionIndex ||
+		transaction.Hash != receipt.TransactionHash {
+		logrus.Panic("Error converting transaction and receipt to DbLog")
+		return []*db.Log{}
+	}
+
+	var logs []*db.Log
+
+	for i := 0; i < len(receipt.Logs); i++ {
+		log := &db.Log{
+			Address:         receipt.Logs[i].Address,
+			Data:            receipt.Logs[i].Data,
+			BlockNumber:     utils.ToUint64(receipt.Logs[i].BlockNumber),
+			TransactionHash: receipt.Logs[i].TransactionHash,
+			BlockHash:       receipt.Logs[i].BlockHash,
+			Index:           utils.ToUint32(receipt.Logs[i].LogIndex),
+		}
+		for j, topic := range receipt.Logs[i].Topics {
+			switch j {
+			case 0:
+				log.Topic1 = topic
+			case 1:
+				log.Topic2 = topic
+			case 2:
+				log.Topic3 = topic
+			case 3:
+				log.Topic4 = topic
+			}
+		}
+		logs = append(logs, log)
+	}
+
+	return logs
 }

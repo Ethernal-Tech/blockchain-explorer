@@ -39,11 +39,15 @@ type Transaction struct {
 }
 
 // Events - Events emitted from smart contracts to be held in this table
-// type Event struct {
-// 	BlockHash       string         `bun:",pk"`
-// 	Index           uint           `bun:",pk,type:integer"`
-// 	Origin          string         `bun:"type:char(42),notnull"`
-// 	Topics          pq.StringArray `bun:"type:text[],notnull"`
-// 	Data            []byte
-// 	TransactionHash string `bun:"type:char(66),notnull"`
-// }
+type Log struct {
+	BlockHash       string `bun:",pk,type:char(66)"`
+	Index           uint32 `bun:",pk,type:integer"`
+	TransactionHash string `bun:"type:char(66),notnull"`
+	Address         string `bun:"type:char(42),notnull"`
+	BlockNumber     uint64 `bun:"type:bigint,notnull"`
+	Topic1          string `bun:"type:char(66)"`
+	Topic2          string `bun:"type:char(66)"`
+	Topic3          string `bun:"type:char(66)"`
+	Topic4          string `bun:"type:char(66)"`
+	Data            string `bun:"type:varchar"`
+}

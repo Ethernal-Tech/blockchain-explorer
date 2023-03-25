@@ -10,6 +10,7 @@ type signalSynch struct {
 
 var synchInstance *signalSynch
 
+//create a singleton instance of a signalSynch
 func GetSignalSynchInstance() *signalSynch {
 	if synchInstance == nil {
 		lock.Lock()

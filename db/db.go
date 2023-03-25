@@ -44,7 +44,44 @@ func InitDb(config config.Config) *bun.DB {
 		logrus.Panic("Error while creating the table Transaction, err: ", err)
 	}
 
+	if _, err := db.NewCreateTable().Model((*Log)(nil)).IfNotExists().Exec(ctx); err != nil {
+		logrus.Panic("Error while creating the table Event, err: ", err)
+	}
+
 	return db
+}
+
+var _ bun.BeforeCreateTableHook = (*Log)(nil)
+
+func (*Log) BeforeCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
+	query.ForeignKey(`("block_hash") REFERENCES "blocks" (hash)`)
+	query.ForeignKey(`("transaction_hash") REFERENCES "transactions" (hash)`)
+	return nil
+}
+
+func (*Log) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
+	var err error
+
+	_, err = query.DB().NewCreateIndex().
+		Model((*Log)(nil)).
+		Index("address_idx").
+		Column("address").
+		IfNotExists().
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = query.DB().NewCreateIndex().
+		Model((*Log)(nil)).
+		Index("transaction_hash_idx").
+		Column("transaction_hash").
+		IfNotExists().
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 var _ bun.BeforeCreateTableHook = (*Transaction)(nil)

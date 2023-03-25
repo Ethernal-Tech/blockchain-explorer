@@ -22,6 +22,7 @@ type Config struct {
 	Mode                 string
 	CheckPointWindow     uint
 	CheckPointDistance   uint
+	EthLogs              bool
 }
 
 func LoadConfig() (Config, error) {
@@ -64,6 +65,7 @@ func (cfg *Config) fillConfigurations() {
 	flag.UintVar(&cfg.CallTimeoutInSeconds, "timeout value", viper.GetUint("CALL_TIMEOUT_IN_SECONDS"), "Sets a timeout used for requests sent to the blockchain")
 	flag.UintVar(&cfg.CheckPointWindow, "checkpoint.window value", viper.GetUint("CHECKPOINT_WINDOW"), "Sets after how many created blocks the checkpoint is determined")
 	flag.UintVar(&cfg.CheckPointDistance, "checkpoint.distance value", viper.GetUint("CHECKPOINT_DISTANCE"), "Sets the checkpoint distance from the latest block on the blockchain")
+	flag.BoolVar(&cfg.EthLogs, "eth.logs", viper.GetBool("INCLUDE_ETH_LOGS"), "Include Ethereum Logs")
 	flag.Parse()
 }
 

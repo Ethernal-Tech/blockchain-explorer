@@ -82,6 +82,14 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config config.Config) {
 					}
 				}
 
+				if len(val.Logs) != 0 {
+					_, logsError := tx.NewInsert().Model(&val.Logs).Exec(ctx)
+					if logsError != nil {
+						logrus.Error("Error during inserting logs in DB, err: ", logsError)
+						return logsError
+					}
+				}
+
 				return nil
 			})
 
@@ -120,6 +128,7 @@ func createJobs(missingBlocks []uint64, client *rpc.Client, db *bundb.DB, config
 				Db:                   db,
 				Step:                 config.Step,
 				CallTimeoutInSeconds: config.CallTimeoutInSeconds,
+				EthLogs:              config.EthLogs,
 			},
 		}
 	}
@@ -232,8 +241,14 @@ func findNewCheckPoint(client *rpc.Client, database *bundb.DB, ctx context.Conte
 	if len(numbersToDelete) != 0 {
 		logrus.Info("Deleting blocks: ", numbersToDelete)
 		startDeletingAt := time.Now().UTC()
-		// deleting blocks and transactions in one transaction scope
+		// deleting blocks, transactions and logs in one transaction scope
 		_ = database.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bundb.Tx) error {
+			_, logError := tx.NewDelete().Table("logs").Where("block_number IN (?)", bundb.In(numbersToDelete)).Exec(ctx)
+			if logError != nil {
+				logrus.Error("Error during deleting logs from DB, err: ", logError)
+				return logError
+			}
+
 			_, transError := tx.NewDelete().Table("transactions").Where("block_number IN (?)", bundb.In(numbersToDelete)).Exec(ctx)
 			if transError != nil {
 				logrus.Error("Error during deleting transactions from DB, err: ", transError)

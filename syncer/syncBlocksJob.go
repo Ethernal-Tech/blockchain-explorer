@@ -20,11 +20,13 @@ type JobArgs struct {
 	Db                   *bun.DB
 	Step                 uint
 	CallTimeoutInSeconds uint
+	EthLogs              bool
 }
 
 type JobResult struct {
 	Blocks       []*db.Block
 	Transactions []*db.Transaction
+	Logs         []*db.Log
 }
 
 var (
@@ -43,11 +45,19 @@ var (
 		}
 
 		dbTransactions := make([]*db.Transaction, len(transactions))
-		for i, t := range transactions {
-			dbTransactions[i] = eth.CreateDbTransaction(t, receipts[i])
+		dbLogs := []*db.Log{}
+		if jobArgs.EthLogs {
+			for i, t := range transactions {
+				dbTransactions[i] = eth.CreateDbTransaction(t, receipts[i])
+				dbLogs = append(dbLogs, eth.CreateDbLog(t, receipts[i])...)
+			}
+		} else {
+			for i, t := range transactions {
+				dbTransactions[i] = eth.CreateDbTransaction(t, receipts[i])
+			}
 		}
 
-		return JobResult{Blocks: dbBlocks, Transactions: dbTransactions}
+		return JobResult{Blocks: dbBlocks, Transactions: dbTransactions, Logs: dbLogs}
 	}
 )
 
