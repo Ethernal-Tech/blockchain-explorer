@@ -37,7 +37,13 @@ var (
 		}
 
 		blocks := GetBlocks(jobArgs, ctx)
+		if blocks == nil {
+			return nil
+		}
 		transactions, receipts := GetTransactions(blocks, jobArgs, ctx)
+		if transactions == nil || receipts == nil {
+			return nil
+		}
 
 		dbBlocks := make([]*db.Block, len(blocks))
 		for i, b := range blocks {
@@ -64,7 +70,6 @@ var (
 func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) ([]*eth.Transaction, []*eth.TransactionReceipt) {
 	var transactions []*eth.Transaction
 	var receipts []*eth.TransactionReceipt
-	var errors []error
 	var elems []rpc.BatchElem
 
 	for _, block := range blocks {
@@ -77,26 +82,20 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) 
 				Timestamp: block.Timestamp,
 			}
 			receipt := &eth.TransactionReceipt{}
-			err1 := error(nil)
-			err2 := error(nil)
 
 			elems = append(elems, rpc.BatchElem{
 				Method: "eth_getTransactionByHash",
 				Args:   []interface{}{transHash},
 				Result: transaction,
-				Error:  err1,
 			})
 			elems = append(elems, rpc.BatchElem{
 				Method: "eth_getTransactionReceipt",
 				Args:   []interface{}{transHash},
 				Result: receipt,
-				Error:  err2,
 			})
 
 			transactions = append(transactions, transaction)
 			receipts = append(receipts, receipt)
-			errors = append(errors, err1)
-			errors = append(errors, err2)
 		}
 	}
 
@@ -110,22 +109,18 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) 
 			to := int(math.Min(float64(len(elems)), float64((i+1)*step)))
 
 			elemSlice := elems[from:to]
-			for {
-				ioErr := batchCallWithTimeout(&elemSlice, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
-				if ioErr != nil {
-					logrus.Error("Cannot get transactions from blockchain, err: ", ioErr)
-					continue
-				}
-				if transactions[0].Hash != "" {
-					break
+			ioErr := batchCallWithTimeout(&elemSlice, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
+			if ioErr != nil {
+				logrus.Error("Cannot get transactions from blockchain, err: ", ioErr)
+				return nil, nil
+			}
+
+			for _, e := range elemSlice {
+				if e.Error != nil {
+					logrus.Error("Error during batch call, err: ", e.Error.Error())
+					return nil, nil
 				}
 			}
-		}
-	}
-
-	for _, e := range errors {
-		if e != nil {
-			logrus.Error("Error during batch call, err: ", e.Error())
 		}
 	}
 
@@ -134,38 +129,30 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) 
 
 func GetBlocks(jobArgs JobArgs, ctx context.Context) []*eth.Block {
 	var blocks []*eth.Block
-	errors := make([]error, 0, len(jobArgs.BlockNumbers))
 	elems := make([]rpc.BatchElem, 0, len(jobArgs.BlockNumbers))
 
 	for _, blockNumber := range jobArgs.BlockNumbers {
 		block := &eth.Block{}
-		err := error(nil)
 
 		elems = append(elems, rpc.BatchElem{
 			Method: "eth_getBlockByNumber",
 			Args:   []interface{}{string(hexutil.EncodeBig(big.NewInt(int64(blockNumber)))), false},
 			Result: block,
-			Error:  err,
 		})
 
 		blocks = append(blocks, block)
-		errors = append(errors, err)
 	}
 
-	for {
-		ioErr := batchCallWithTimeout(&elems, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
-		if ioErr != nil {
-			logrus.Error("Cannot get blocks from blockchain, err: ", ioErr)
-			continue
-		}
-		if blocks[0].Number != "" {
-			break
-		}
+	ioErr := batchCallWithTimeout(&elems, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, ctx)
+	if ioErr != nil {
+		logrus.Error("Cannot get blocks from blockchain, err: ", ioErr)
+		return nil
 	}
 
-	for _, e := range errors {
-		if e != nil {
-			logrus.Error("Error during batch call, err: ", e.Error())
+	for _, e := range elems {
+		if e.Error != nil {
+			logrus.Error("Error during batch call, err: ", e.Error.Error())
+			return nil
 		}
 	}
 
