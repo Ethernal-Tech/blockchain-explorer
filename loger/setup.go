@@ -62,5 +62,4 @@ func Rotate() {
 		logrus.Fatalf("Failed to Initialize Log File %s", err)
 	}
 	logrus.SetOutput(writer)
-	return
 }

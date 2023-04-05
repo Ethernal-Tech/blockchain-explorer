@@ -38,6 +38,6 @@ func main() {
 		}
 		listener.ListenForNewBlocks(&connection, db, config)
 	default:
-		logrus.Info("Mode %s is not provided", config.Mode)
+		logrus.Info("Mode ", config.Mode, " is not provided")
 	}
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 )
 
-func InitDb(config config.Config) *bun.DB {
+func InitDb(config *config.Config) *bun.DB {
 
 	connString := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
 		config.DbUser, config.DbPassword, config.DbHost, config.DbPort, config.DbName, config.DbSSL)

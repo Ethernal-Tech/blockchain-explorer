@@ -19,7 +19,7 @@ type BlockHeader struct {
 }
 
 // ListenForNewBlocks listens for new blocks on the blockchain and then processes them.
-func ListenForNewBlocks(connection *eth.BlockchainNodeConnection, db *bundb.DB, config config.Config) {
+func ListenForNewBlocks(connection *eth.BlockchainNodeConnection, db *bundb.DB, config *config.Config) {
 
 	// synch signal ensures that only one trigger can perform synchronization at a time
 	synch := syncer.GetSignalSynchInstance()
