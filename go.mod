@@ -12,6 +12,12 @@ require (
 )
 
 require (
+	github.com/jonboulle/clockwork v0.4.0 // indirect
+	github.com/lestrrat-go/strftime v1.0.6 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+)
+
+require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -20,6 +26,7 @@ require (
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect

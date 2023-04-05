@@ -6,24 +6,15 @@ import (
 	"ethernal/explorer/db"
 	"ethernal/explorer/eth"
 	"ethernal/explorer/listener"
-	"ethernal/explorer/logrusSetup"
+	"ethernal/explorer/loger"
 	"ethernal/explorer/syncer"
-
-	"os"
 
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	logrusSetup.Setup()
-
-	f, err := os.OpenFile("logfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		logrus.Panic("Error opening or creating file, err: ", err)
-	}
-	defer f.Close()
-
-	logrus.SetOutput(f)
+	loger.Setup()
+	loger.Rotate()
 
 	config, err := config.LoadConfig()
 	if err != nil {

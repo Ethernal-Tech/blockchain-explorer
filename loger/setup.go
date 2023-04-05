@@ -1,9 +1,11 @@
-package logrusSetup
+package loger
 
 import (
 	"bytes"
 	"fmt"
+	"time"
 
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,4 +47,20 @@ func Setup() {
 	logrus.SetReportCaller(true)       // this line is for logging filename and line number
 	logrus.SetLevel(logrus.InfoLevel)  // setting log level
 	logrus.SetFormatter(MyFormatter{}) // setting custom formatter
+}
+
+func Rotate() {
+	writer, err := rotatelogs.New(
+		"logfile.%Y.%m.%d",
+		//rotatelogs.WithLinkName("logfile"),
+		rotatelogs.WithRotationTime(7*24*time.Hour),
+		rotatelogs.WithMaxAge(-1),
+		rotatelogs.WithRotationCount(4),
+	)
+
+	if err != nil {
+		logrus.Fatalf("Failed to Initialize Log File %s", err)
+	}
+	logrus.SetOutput(writer)
+	return
 }
