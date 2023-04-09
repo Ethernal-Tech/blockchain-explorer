@@ -51,8 +51,8 @@ func Setup() {
 
 func Rotate() {
 	writer, err := rotatelogs.New(
-		"logfile.%Y.%m.%d",
-		//rotatelogs.WithLinkName("logfile"),
+		"logs/logfile.%Y.%m.%d",
+		//rotatelogs.WithLinkName("logs/logfile"),
 		rotatelogs.WithRotationTime(7*24*time.Hour),
 		rotatelogs.WithMaxAge(-1),
 		rotatelogs.WithRotationCount(4),

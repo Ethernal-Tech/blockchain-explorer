@@ -22,4 +22,4 @@ snapshot.bin
 
 #logs
 .vscode
-logfile
+.logs
