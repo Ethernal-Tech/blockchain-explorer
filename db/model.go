@@ -45,9 +45,9 @@ type Log struct {
 	TransactionHash string `bun:"type:char(66),notnull"`
 	Address         string `bun:"type:char(42),notnull"`
 	BlockNumber     uint64 `bun:"type:bigint,notnull"`
+	Topic0          string `bun:"type:char(66)"`
 	Topic1          string `bun:"type:char(66)"`
 	Topic2          string `bun:"type:char(66)"`
 	Topic3          string `bun:"type:char(66)"`
-	Topic4          string `bun:"type:char(66)"`
 	Data            string `bun:"type:varchar"`
 }

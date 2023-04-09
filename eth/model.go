@@ -145,13 +145,13 @@ func CreateDbLog(transaction *Transaction, receipt *TransactionReceipt) []*db.Lo
 		for j, topic := range receipt.Logs[i].Topics {
 			switch j {
 			case 0:
-				log.Topic1 = topic
+				log.Topic0 = topic
 			case 1:
-				log.Topic2 = topic
+				log.Topic1 = topic
 			case 2:
-				log.Topic3 = topic
+				log.Topic2 = topic
 			case 3:
-				log.Topic4 = topic
+				log.Topic3 = topic
 			}
 		}
 		logs = append(logs, log)
