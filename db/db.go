@@ -45,9 +45,12 @@ func InitDb(config *config.Config) *bun.DB {
 	}
 
 	if _, err := db.NewCreateTable().Model((*Log)(nil)).IfNotExists().Exec(ctx); err != nil {
-		logrus.Panic("Error while creating the table Event, err: ", err)
+		logrus.Panic("Error while creating the table Log, err: ", err)
 	}
 
+	if _, err := db.NewCreateTable().Model((*Event)(nil)).IfNotExists().Exec(ctx); err != nil {
+		logrus.Panic("Error while creating the table Event, err: ", err)
+	}
 	return db
 }
 
