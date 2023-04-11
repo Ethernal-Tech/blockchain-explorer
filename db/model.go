@@ -51,3 +51,9 @@ type Log struct {
 	Topic3          string `bun:"type:char(66)"`
 	Data            string `bun:"type:varchar"`
 }
+
+type Event struct {
+	Id      string `bun:",pk,type:char(66),notnull"`
+	Address string `bun:",pk,type:char(42),notnull"`
+	Abi     string `bun:"type:jsonb"`
+}
