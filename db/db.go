@@ -101,9 +101,9 @@ func (*AbiType) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuer
 			return err
 		}
 		abiTypes := []*AbiType{
-			{Id: 1, Name: "Event"},
-			{Id: 2, Name: "Function"},
-			{Id: 3, Name: "Constructor"},
+			{Id: 1, Name: "Constructor"},
+			{Id: 2, Name: "Event"},
+			{Id: 3, Name: "Function"},
 		}
 		if _, err := query.DB().NewInsert().Model(&abiTypes).Exec(ctx); err != nil {
 			logrus.Panic("Error while inserting data into the AbiType table, err: ", err)
