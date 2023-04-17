@@ -87,6 +87,14 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config *config.Config) 
 					}
 				}
 
+				if len(val.Contracts) != 0 {
+					_, contractsError := tx.NewInsert().Model(&val.Contracts).Exec(ctx)
+					if contractsError != nil {
+						logrus.Error("Error during inserting contracts in DB, err: ", contractsError)
+						return contractsError
+					}
+				}
+
 				if len(val.Logs) != 0 {
 					_, logsError := tx.NewInsert().Model(&val.Logs).Exec(ctx)
 					if logsError != nil {

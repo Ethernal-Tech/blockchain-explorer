@@ -27,6 +27,7 @@ type JobResult struct {
 	Blocks       []*db.Block
 	Transactions []*db.Transaction
 	Logs         []*db.Log
+	Contracts    []db.Contract
 }
 
 var (
@@ -52,18 +53,19 @@ var (
 
 		dbTransactions := make([]*db.Transaction, len(transactions))
 		dbLogs := []*db.Log{}
-		if jobArgs.EthLogs {
-			for i, t := range transactions {
-				dbTransactions[i] = eth.CreateDbTransaction(t, receipts[i])
-				dbLogs = append(dbLogs, eth.CreateDbLog(t, receipts[i])...)
+		dbContracts := []db.Contract{}
+
+		for i, t := range transactions {
+			dbTransactions[i] = eth.CreateDbTransaction(t, receipts[i])
+			if receipts[i].ContractAddress != "" {
+				dbContracts = append(dbContracts, eth.CreateDbContract(receipts[i]))
 			}
-		} else {
-			for i, t := range transactions {
-				dbTransactions[i] = eth.CreateDbTransaction(t, receipts[i])
+			if jobArgs.EthLogs {
+				dbLogs = append(dbLogs, eth.CreateDbLog(t, receipts[i])...)
 			}
 		}
 
-		return JobResult{Blocks: dbBlocks, Transactions: dbTransactions, Logs: dbLogs}
+		return JobResult{Blocks: dbBlocks, Transactions: dbTransactions, Logs: dbLogs, Contracts: dbContracts}
 	}
 )
 

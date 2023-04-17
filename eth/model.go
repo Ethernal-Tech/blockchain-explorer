@@ -122,6 +122,13 @@ func CreateDbTransaction(transaction *Transaction, receipt *TransactionReceipt) 
 	}
 }
 
+func CreateDbContract(receipt *TransactionReceipt) db.Contract {
+	return db.Contract{
+		Address:         receipt.ContractAddress,
+		TransactionHash: receipt.TransactionHash,
+	}
+}
+
 func CreateDbLog(transaction *Transaction, receipt *TransactionReceipt) []*db.Log {
 	if transaction.BlockHash != receipt.BlockHash ||
 		transaction.BlockNumber != receipt.BlockNumber ||
