@@ -59,7 +59,6 @@ func InitDb(config *config.Config) *bun.DB {
 	if _, err := db.NewCreateTable().Model((*Abi)(nil)).IfNotExists().Exec(ctx); err != nil {
 		logrus.Panic("Error while creating the table Abi, err: ", err)
 	}
-
 	return db
 }
 
