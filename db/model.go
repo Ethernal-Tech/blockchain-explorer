@@ -24,7 +24,7 @@ type Transaction struct {
 	BlockHash        string `bun:"type:char(66),notnull"`
 	BlockNumber      uint64 `bun:"type:bigint,notnull"`
 	From             string `bun:"type:char(42),notnull"`
-	To               string `bun:"type:char(42)"`
+	To               string `bun:"type:varchar(42)"`
 	Gas              uint64 `bun:"type:bigint,notnull"`
 	GasUsed          uint64 `bun:"type:bigint,notnull"`
 	GasPrice         uint64 `bun:"type:bigint,notnull"`
@@ -45,9 +45,28 @@ type Log struct {
 	TransactionHash string `bun:"type:char(66),notnull"`
 	Address         string `bun:"type:char(42),notnull"`
 	BlockNumber     uint64 `bun:"type:bigint,notnull"`
-	Topic0          string `bun:"type:char(66)"`
-	Topic1          string `bun:"type:char(66)"`
-	Topic2          string `bun:"type:char(66)"`
-	Topic3          string `bun:"type:char(66)"`
+	Topic0          string `bun:"type:varchar(66),notnull"`
+	Topic1          string `bun:"type:varchar(66)"`
+	Topic2          string `bun:"type:varchar(66)"`
+	Topic3          string `bun:"type:varchar(66)"`
 	Data            string `bun:"type:varchar"`
+}
+
+type Contract struct {
+	Address         string `bun:",pk,type:char(42)"`
+	TransactionHash string `bun:"type:char(66),notnull"`
+	//SourceCode string `bun:"type:varchar()"`
+}
+
+type Abi struct {
+	Id         uint64 `bun:",pk,type:bigserial"`
+	Hash       string `bun:"type:varchar(66)"` //topic0 or first four bytes of the method signature hash
+	Address    string `bun:"type:char(42),notnull"`
+	AbiTypeId  int    `bun:"type:integer,notnull"`
+	Definition string `bun:"type:varchar,notnull"`
+}
+
+type AbiType struct {
+	Id   int    `bun:",pk,type:integer"`
+	Name string `bun:"type:varchar,notnull"`
 }
