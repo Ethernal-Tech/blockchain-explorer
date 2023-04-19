@@ -70,8 +70,8 @@ var (
 )
 
 func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) ([]*eth.Transaction, []*eth.TransactionReceipt) {
-	var transactions []*eth.Transaction
-	var receipts []*eth.TransactionReceipt
+	transactions := []*eth.Transaction{}
+	receipts := []*eth.TransactionReceipt{}
 	var elems []rpc.BatchElem
 
 	for _, block := range blocks {
@@ -130,7 +130,7 @@ func GetTransactions(blocks []*eth.Block, jobArgs JobArgs, ctx context.Context) 
 }
 
 func GetBlocks(jobArgs JobArgs, ctx context.Context) []*eth.Block {
-	var blocks []*eth.Block
+	blocks := []*eth.Block{}
 	elems := make([]rpc.BatchElem, 0, len(jobArgs.BlockNumbers))
 
 	for _, blockNumber := range jobArgs.BlockNumbers {
