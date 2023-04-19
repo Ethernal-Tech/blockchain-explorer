@@ -155,7 +155,6 @@ var _ bun.BeforeCreateTableHook = (*Log)(nil)
 func (*Log) BeforeCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
 	query.ForeignKey(`("block_hash") REFERENCES "blocks" (hash)`)
 	query.ForeignKey(`("transaction_hash") REFERENCES "transactions" (hash)`)
-	query.ForeignKey(`("address") REFERENCES "contracts" (address)`)
 	return nil
 }
 
