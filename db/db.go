@@ -59,6 +59,14 @@ func InitDb(config *config.Config) *bun.DB {
 	if _, err := db.NewCreateTable().Model((*Abi)(nil)).IfNotExists().Exec(ctx); err != nil {
 		logrus.Panic("Error while creating the table Abi, err: ", err)
 	}
+
+	if _, err := db.NewCreateTable().Model((*TokenType)(nil)).IfNotExists().Exec(ctx); err != nil {
+		logrus.Panic("Error while creating the table TokenType, err: ", err)
+	}
+
+	if _, err := db.NewCreateTable().Model((*Nft)(nil)).IfNotExists().Exec(ctx); err != nil {
+		logrus.Panic("Error while creating the table Nft, err: ", err)
+	}
 	return db
 }
 
@@ -268,4 +276,39 @@ func (*Block) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuery)
 	}
 
 	return err
+}
+
+// -----------------TokenType Table-----------------------------
+var _ bun.AfterCreateTableHook = (*TokenType)(nil)
+
+func (*TokenType) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
+
+	var count int = 0
+	count, err := query.DB().NewSelect().Model(&TokenType{}).Count(ctx)
+	if count == 0 {
+		if err != nil {
+			logrus.Panic("Error while checking count of rows in the TokenType table, err: ", err)
+			return err
+		}
+		tokenTypes := []*TokenType{
+			{Id: 1, Name: "ERC-20"},
+			{Id: 2, Name: "ERC-721"},
+			{Id: 3, Name: "ERC-1155"},
+		}
+		if _, err := query.DB().NewInsert().Model(&tokenTypes).Exec(ctx); err != nil {
+			logrus.Panic("Error while inserting data into the TokenType table, err: ", err)
+			return err
+		}
+	}
+	return nil
+}
+
+// ---------------Nft Table---------------------------------
+var _ bun.BeforeCreateTableHook = (*Nft)(nil)
+
+func (*Nft) BeforeCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
+	query.ForeignKey(`("block_hash", "index") REFERENCES "logs" ("block_hash", "index")`)
+	query.ForeignKey(`("transaction_hash") REFERENCES "transactions" (hash)`)
+	query.ForeignKey(`("token_type_id") REFERENCES "token_types" (id)`)
+	return nil
 }

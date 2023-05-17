@@ -70,3 +70,21 @@ type AbiType struct {
 	Id   int    `bun:",pk,type:integer"`
 	Name string `bun:"type:varchar,notnull"`
 }
+
+type TokenType struct {
+	Id   int    `bun:",pk,type:integer"`
+	Name string `bun:"type:varchar,notnull"`
+}
+
+type Nft struct {
+	Id              uint64 `bun:",pk,type:bigserial"`
+	BlockHash       string `bun:"type:char(66),notnull"`
+	Index           uint32 `bun:"type:integer,notnull"`
+	TransactionHash string `bun:"type:char(66),notnull"`
+	Address         string `bun:"type:char(42),notnull"`
+	From            string `bun:"type:char(42),notnull"`
+	To              string `bun:"type:char(42),notnull"`
+	TokenId         string `bun:"type:varchar(78),notnull"`
+	Value           string `bun:"type:varchar(78)"`
+	TokenTypeId     int    `bun:"type:integer,notnull"`
+}
