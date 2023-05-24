@@ -1,9 +1,14 @@
 package eth
 
 import (
+	"ethernal/explorer/common"
 	"ethernal/explorer/db"
 	"ethernal/explorer/utils"
+	"fmt"
+	"strings"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	ethereumCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/sirupsen/logrus"
 )
 
@@ -165,4 +170,94 @@ func CreateDbLog(transaction *Transaction, receipt *TransactionReceipt) []*db.Lo
 	}
 
 	return logs
+}
+
+func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.Nft, error) {
+	var nfts []*db.Nft
+	for _, log := range receipt.Logs {
+		if len(log.Topics) == 4 && log.Topics[0] == common.Erc721TransferEvent.Signature {
+			parsedLog := &Erc721Transfer{}
+			if err := parseLog(parsedLog, log, common.Erc721TransferEvent.Name, common.Erc721TransferEvent.Abi); err != nil {
+				return nil, err
+			}
+
+			nft := &db.Nft{
+				BlockHash:       log.BlockHash,
+				Index:           utils.ToUint32(log.LogIndex),
+				TransactionHash: log.TransactionHash,
+				Address:         log.Address,
+				From:            parsedLog.From.String(),
+				To:              parsedLog.To.String(),
+				TokenId:         parsedLog.TokenId.String(),
+				TokenTypeId:     common.ERC721Type,
+			}
+			nfts = append(nfts, nft)
+		} else if len(log.Topics) == 4 && log.Topics[0] == common.Erc1155TransferSingleEvent.Signature {
+			parsedLog := &Erc1155TransferSingle{}
+			if err := parseLog(parsedLog, log, common.Erc1155TransferSingleEvent.Name, common.Erc1155TransferSingleEvent.Abi); err != nil {
+				return nil, err
+			}
+			nft := &db.Nft{
+				BlockHash:       log.BlockHash,
+				Index:           utils.ToUint32(log.LogIndex),
+				TransactionHash: log.TransactionHash,
+				Address:         log.Address,
+				From:            parsedLog.From.String(),
+				To:              parsedLog.To.String(),
+				TokenId:         parsedLog.Id.String(),
+				Value:           parsedLog.Value.String(),
+				TokenTypeId:     common.ERC1155Type,
+			}
+			nfts = append(nfts, nft)
+		} else if len(log.Topics) == 4 && log.Topics[0] == common.Erc1155TransferBatchEvent.Signature {
+			parsedLog := &Erc1155TransferBatch{}
+
+			if err := parseLog(parsedLog, log, common.Erc1155TransferBatchEvent.Name, common.Erc1155TransferBatchEvent.Abi); err != nil {
+				return nil, err
+			}
+
+			for index, id := range parsedLog.Ids {
+				nft := &db.Nft{
+					BlockHash:       log.BlockHash,
+					Index:           utils.ToUint32(log.LogIndex),
+					TransactionHash: log.TransactionHash,
+					Address:         log.Address,
+					From:            parsedLog.From.String(),
+					To:              parsedLog.To.String(),
+					TokenId:         id.String(),
+					Value:           parsedLog.Values[index].String(),
+					TokenTypeId:     common.ERC1155Type,
+				}
+				nfts = append(nfts, nft)
+			}
+		} else {
+			continue
+		}
+
+	}
+	return nfts, nil
+}
+
+func parseLog(out interface{}, log Log, eventName string, eventAbi string) error {
+	parsedAbi, _ := abi.JSON(strings.NewReader("[" + eventAbi + "]"))
+	event := parsedAbi.Events[eventName]
+	if ethereumCommon.BytesToHash(ethereumCommon.Hex2Bytes((log.Topics[0][2:]))) != event.ID {
+		return fmt.Errorf("event signature mismatch")
+	}
+	if len(log.Data) > 0 {
+		if err := parsedAbi.UnpackIntoInterface(out, eventName, ethereumCommon.Hex2Bytes(log.Data[2:])); err != nil {
+			return err
+		}
+	}
+	var indexed abi.Arguments
+	for _, arg := range event.Inputs {
+		if arg.Indexed {
+			indexed = append(indexed, arg)
+		}
+	}
+	var topics []ethereumCommon.Hash
+	for i := 1; i < len(log.Topics); i++ {
+		topics = append(topics, ethereumCommon.BytesToHash(ethereumCommon.Hex2Bytes(log.Topics[i][2:])))
+	}
+	return abi.ParseTopics(out, indexed, topics)
 }

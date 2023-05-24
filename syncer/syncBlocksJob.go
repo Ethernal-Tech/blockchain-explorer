@@ -27,6 +27,7 @@ type JobResult struct {
 	Blocks       []*db.Block
 	Transactions []*db.Transaction
 	Logs         []*db.Log
+	Nfts         []*db.Nft
 	Contracts    []db.Contract
 }
 
@@ -54,6 +55,7 @@ var (
 		dbTransactions := make([]*db.Transaction, len(transactions))
 		dbLogs := []*db.Log{}
 		dbContracts := []db.Contract{}
+		dbNfts := []*db.Nft{}
 
 		for i, t := range transactions {
 			dbTransactions[i] = eth.CreateDbTransaction(t, receipts[i])
@@ -62,10 +64,16 @@ var (
 			}
 			if jobArgs.EthLogs {
 				dbLogs = append(dbLogs, eth.CreateDbLog(t, receipts[i])...)
+				nfts, err := eth.CreateDbNfts(t, receipts[i])
+				if err != nil {
+					logrus.Error("Error while parsing logs for transaction ", t.Hash, " , err: ", err)
+					return nil
+				}
+				dbNfts = append(dbNfts, nfts...)
 			}
 		}
 
-		return JobResult{Blocks: dbBlocks, Transactions: dbTransactions, Logs: dbLogs, Contracts: dbContracts}
+		return JobResult{Blocks: dbBlocks, Transactions: dbTransactions, Logs: dbLogs, Nfts: dbNfts, Contracts: dbContracts}
 	}
 )
 

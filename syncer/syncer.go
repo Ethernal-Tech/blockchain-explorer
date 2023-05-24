@@ -103,6 +103,14 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config *config.Config) 
 					}
 				}
 
+				if len(val.Nfts) != 0 {
+					_, nftsError := tx.NewInsert().Model(&val.Nfts).Exec(ctx)
+					if nftsError != nil {
+						logrus.Error("Error during inserting nfts in DB, err: ", nftsError)
+						return nftsError
+					}
+				}
+
 				return nil
 			})
 
@@ -245,33 +253,56 @@ func findNewCheckPoint(client *rpc.Client, database *bundb.DB, ctx context.Conte
 		return
 	}
 
-	numbersToDelete := []uint64{}
+	blocksToDelete := []string{}
 	// compare hashes of blocks in the database with hashes on the blockchain
-	// if they do not match, the block number is added for deletion
+	// if they do not match, the block is added for deletion
 	for i := range blockNumbers {
 		if blocksFromDb[i].Hash != blocksFromBlockchain[i].Hash {
-			numbersToDelete = append(numbersToDelete, blocksFromDb[i].Number)
+			blocksToDelete = append(blocksToDelete, blocksFromDb[i].Hash)
 		}
 	}
 
-	if len(numbersToDelete) != 0 {
-		logrus.Info("Deleting blocks: ", numbersToDelete)
+	if len(blocksToDelete) != 0 {
+		logrus.Info("Deleting blocks: ", blocksToDelete)
 		startDeletingAt := time.Now().UTC()
-		// deleting blocks, transactions and logs in one transaction scope
+		addressesToDelete := []string{}
+		database.NewSelect().Table("transactions").ColumnExpr("contract_address").Where("block_hash IN (?)", bundb.In(blocksToDelete)).Where("contract_address != ''").Scan(ctx, &addressesToDelete)
+
+		// deleting from database in one transaction scope
 		_ = database.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bundb.Tx) error {
-			_, logError := tx.NewDelete().Table("logs").Where("block_number IN (?)", bundb.In(numbersToDelete)).Exec(ctx)
+			if len(addressesToDelete) != 0 {
+				_, abiError := tx.NewDelete().Table("abis").Where("address IN (?)", bundb.In(addressesToDelete)).Exec(ctx)
+				if abiError != nil {
+					logrus.Error("Error during deleting abis from DB, err: ", abiError)
+					return abiError
+				}
+
+				_, contractError := tx.NewDelete().Table("contracts").Where("address IN (?)", bundb.In(addressesToDelete)).Exec(ctx)
+				if contractError != nil {
+					logrus.Error("Error during deleting contracts from DB, err: ", contractError)
+					return contractError
+				}
+
+			}
+			_, nftError := tx.NewDelete().Table("nfts").Where("block_hash IN (?)", bundb.In(blocksToDelete)).Exec(ctx)
+			if nftError != nil {
+				logrus.Error("Error during deleting nfts from DB, err: ", nftError)
+				return nftError
+			}
+
+			_, logError := tx.NewDelete().Table("logs").Where("block_hash IN (?)", bundb.In(blocksToDelete)).Exec(ctx)
 			if logError != nil {
 				logrus.Error("Error during deleting logs from DB, err: ", logError)
 				return logError
 			}
 
-			_, transError := tx.NewDelete().Table("transactions").Where("block_number IN (?)", bundb.In(numbersToDelete)).Exec(ctx)
+			_, transError := tx.NewDelete().Table("transactions").Where("block_hash IN (?)", bundb.In(blocksToDelete)).Exec(ctx)
 			if transError != nil {
 				logrus.Error("Error during deleting transactions from DB, err: ", transError)
 				return transError
 			}
 
-			_, blockError := tx.NewDelete().Table("blocks").Where("number IN (?)", bundb.In(numbersToDelete)).Exec(ctx)
+			_, blockError := tx.NewDelete().Table("blocks").Where("hash IN (?)", bundb.In(blocksToDelete)).Exec(ctx)
 			if blockError != nil {
 				logrus.Error("Error during deleting blocks from DB, err: ", blockError)
 				return blockError

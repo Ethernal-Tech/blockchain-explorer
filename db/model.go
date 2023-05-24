@@ -77,7 +77,7 @@ type TokenType struct {
 }
 
 type Nft struct {
-	Id              uint64 `bun:",pk,type:bigserial"`
+	Id              uint64 `bun:",pk,type:bigserial,nullzero"`
 	BlockHash       string `bun:"type:char(66),notnull"`
 	Index           uint32 `bun:"type:integer,notnull"`
 	TransactionHash string `bun:"type:char(66),notnull"`
