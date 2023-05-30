@@ -312,3 +312,21 @@ func (*Nft) BeforeCreateTable(ctx context.Context, query *bun.CreateTableQuery) 
 	query.ForeignKey(`("token_type_id") REFERENCES "token_types" (id)`)
 	return nil
 }
+
+var _ bun.AfterCreateTableHook = (*Nft)(nil)
+
+func (*Nft) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
+	var err error
+
+	_, err = query.DB().NewCreateIndex().
+		Model((*Nft)(nil)).
+		Index("nfts_block_number_idx").
+		Column("block_number").
+		IfNotExists().
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

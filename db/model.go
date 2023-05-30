@@ -80,6 +80,7 @@ type Nft struct {
 	Id              uint64 `bun:",pk,type:bigserial,nullzero"`
 	BlockHash       string `bun:"type:char(66),notnull"`
 	Index           uint32 `bun:"type:integer,notnull"`
+	BlockNumber     uint64 `bun:"type:bigint,notnull"`
 	TransactionHash string `bun:"type:char(66),notnull"`
 	Address         string `bun:"type:char(42),notnull"`
 	From            string `bun:"type:char(42),notnull"`

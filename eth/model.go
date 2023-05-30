@@ -184,6 +184,7 @@ func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.
 			nft := &db.Nft{
 				BlockHash:       log.BlockHash,
 				Index:           utils.ToUint32(log.LogIndex),
+				BlockNumber:     utils.ToUint64(log.BlockNumber),
 				TransactionHash: log.TransactionHash,
 				Address:         log.Address,
 				From:            parsedLog.From.String(),
@@ -200,6 +201,7 @@ func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.
 			nft := &db.Nft{
 				BlockHash:       log.BlockHash,
 				Index:           utils.ToUint32(log.LogIndex),
+				BlockNumber:     utils.ToUint64(log.BlockNumber),
 				TransactionHash: log.TransactionHash,
 				Address:         log.Address,
 				From:            parsedLog.From.String(),
@@ -220,6 +222,7 @@ func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.
 				nft := &db.Nft{
 					BlockHash:       log.BlockHash,
 					Index:           utils.ToUint32(log.LogIndex),
+					BlockNumber:     utils.ToUint64(log.BlockNumber),
 					TransactionHash: log.TransactionHash,
 					Address:         log.Address,
 					From:            parsedLog.From.String(),
