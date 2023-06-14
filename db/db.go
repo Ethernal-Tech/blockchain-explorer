@@ -64,8 +64,16 @@ func InitDb(config *config.Config) *bun.DB {
 		logrus.Panic("Error while creating the table TokenType, err: ", err)
 	}
 
-	if _, err := db.NewCreateTable().Model((*Nft)(nil)).IfNotExists().Exec(ctx); err != nil {
-		logrus.Panic("Error while creating the table Nft, err: ", err)
+	if _, err := db.NewCreateTable().Model((*NftMetadata)(nil)).IfNotExists().Exec(ctx); err != nil {
+		logrus.Panic("Error while creating the table NftMetadata, err: ", err)
+	}
+
+	if _, err := db.NewCreateTable().Model((*NftTransfer)(nil)).IfNotExists().Exec(ctx); err != nil {
+		logrus.Panic("Error while creating the table NftTransfer, err: ", err)
+	}
+
+	if _, err := db.NewCreateTable().Model((*NftMetadataAttribute)(nil)).IfNotExists().Exec(ctx); err != nil {
+		logrus.Panic("Error while creating the table NftMetadataAttribute, err: ", err)
 	}
 	return db
 }
@@ -303,25 +311,72 @@ func (*TokenType) AfterCreateTable(ctx context.Context, query *bun.CreateTableQu
 	return nil
 }
 
-// ---------------Nft Table---------------------------------
-var _ bun.BeforeCreateTableHook = (*Nft)(nil)
+// ---------------Nft Metadata---------------------------------
+var _ bun.AfterCreateTableHook = (*NftMetadata)(nil)
 
-func (*Nft) BeforeCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
-	query.ForeignKey(`("block_hash", "index") REFERENCES "logs" ("block_hash", "index")`)
-	query.ForeignKey(`("transaction_hash") REFERENCES "transactions" (hash)`)
-	query.ForeignKey(`("token_type_id") REFERENCES "token_types" (id)`)
-	return nil
-}
-
-var _ bun.AfterCreateTableHook = (*Nft)(nil)
-
-func (*Nft) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
+func (*NftMetadata) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
 	var err error
 
 	_, err = query.DB().NewCreateIndex().
-		Model((*Nft)(nil)).
+		Model((*NftMetadata)(nil)).
+		Index("token_address_idx").
+		Column("token_id", "address").
+		Unique().
+		IfNotExists().
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ---------------NftTransfer Table---------------------------------
+var _ bun.BeforeCreateTableHook = (*NftTransfer)(nil)
+
+func (*NftTransfer) BeforeCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
+	query.ForeignKey(`("block_hash", "index") REFERENCES "logs" ("block_hash", "index")`)
+	query.ForeignKey(`("transaction_hash") REFERENCES "transactions" (hash)`)
+	query.ForeignKey(`("token_type_id") REFERENCES "token_types" (id)`)
+	query.ForeignKey(`("nft_metadata_id") REFERENCES "nft_metadata" (id)`)
+	return nil
+}
+
+var _ bun.AfterCreateTableHook = (*NftTransfer)(nil)
+
+func (*NftTransfer) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
+	var err error
+
+	_, err = query.DB().NewCreateIndex().
+		Model((*NftTransfer)(nil)).
 		Index("nfts_block_number_idx").
 		Column("block_number").
+		IfNotExists().
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ---------------Nft Metadata Attribute---------------------------------
+var _ bun.BeforeCreateTableHook = (*NftMetadataAttribute)(nil)
+
+func (*NftMetadataAttribute) BeforeCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
+	query.ForeignKey(`("nft_metadata_id") REFERENCES "nft_metadata" (id)`)
+	return nil
+}
+
+var _ bun.AfterCreateTableHook = (*NftMetadataAttribute)(nil)
+
+func (*NftMetadataAttribute) AfterCreateTable(ctx context.Context, query *bun.CreateTableQuery) error {
+	var err error
+
+	_, err = query.DB().NewCreateIndex().
+		Model((*NftMetadataAttribute)(nil)).
+		Index("nft_metadata_id_idx").
+		Column("nft_metadata_id").
 		IfNotExists().
 		Exec(ctx)
 	if err != nil {

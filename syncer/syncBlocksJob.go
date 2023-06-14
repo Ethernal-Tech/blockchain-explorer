@@ -27,7 +27,7 @@ type JobResult struct {
 	Blocks       []*db.Block
 	Transactions []*db.Transaction
 	Logs         []*db.Log
-	Nfts         []*db.Nft
+	Nfts         []*db.NftTransfer
 	Contracts    []db.Contract
 }
 
@@ -55,7 +55,7 @@ var (
 		dbTransactions := make([]*db.Transaction, len(transactions))
 		dbLogs := []*db.Log{}
 		dbContracts := []db.Contract{}
-		dbNfts := []*db.Nft{}
+		dbNfts := []*db.NftTransfer{}
 
 		for i, t := range transactions {
 			dbTransactions[i] = eth.CreateDbTransaction(t, receipts[i])

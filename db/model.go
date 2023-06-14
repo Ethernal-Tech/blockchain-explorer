@@ -76,16 +76,33 @@ type TokenType struct {
 	Name string `bun:"type:varchar,notnull"`
 }
 
-type Nft struct {
-	Id              uint64 `bun:",pk,type:bigserial,nullzero"`
-	BlockHash       string `bun:"type:char(66),notnull"`
-	Index           uint32 `bun:"type:integer,notnull"`
-	BlockNumber     uint64 `bun:"type:bigint,notnull"`
-	TransactionHash string `bun:"type:char(66),notnull"`
-	Address         string `bun:"type:char(42),notnull"`
-	From            string `bun:"type:char(42),notnull"`
-	To              string `bun:"type:char(42),notnull"`
-	TokenId         string `bun:"type:varchar(78),notnull"`
-	Value           string `bun:"type:varchar(78)"`
-	TokenTypeId     int    `bun:"type:integer,notnull"`
+type NftTransfer struct {
+	Id              uint64  `bun:",pk,type:bigserial,nullzero"`
+	BlockHash       string  `bun:"type:char(66),notnull"`
+	Index           uint32  `bun:"type:integer,notnull"`
+	BlockNumber     uint64  `bun:"type:bigint,notnull"`
+	TransactionHash string  `bun:"type:char(66),notnull"`
+	Address         string  `bun:"type:char(42),notnull"`
+	From            string  `bun:"type:char(42),notnull"`
+	To              string  `bun:"type:char(42),notnull"`
+	TokenId         string  `bun:"type:varchar(78),notnull"`
+	Value           string  `bun:"type:varchar(78)"`
+	TokenTypeId     int     `bun:"type:integer,notnull"`
+	NftMetadataId   *uint64 `bun:"type:bigint"`
+}
+
+type NftMetadata struct {
+	Id          uint64 `bun:",pk,type:bigserial,nullzero"`
+	TokenId     string `bun:"type:varchar(78),notnull"`
+	Address     string `bun:"type:char(42),notnull"`
+	Name        string `bun:"type:varchar"`
+	Image       string `bun:"type:varchar"`
+	Description string `bun:"type:varchar"`
+}
+
+type NftMetadataAttribute struct {
+	Id            uint64 `bun:",pk,type:bigserial,nullzero"`
+	NftMetadataId uint64 `bun:"type:bigint,notnull"`
+	TraitType     string `bun:"type:varchar"`
+	Value         string `bun:"type:varchar"`
 }

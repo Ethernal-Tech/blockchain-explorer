@@ -172,8 +172,8 @@ func CreateDbLog(transaction *Transaction, receipt *TransactionReceipt) []*db.Lo
 	return logs
 }
 
-func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.Nft, error) {
-	var nfts []*db.Nft
+func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.NftTransfer, error) {
+	var nfts []*db.NftTransfer
 	for _, log := range receipt.Logs {
 		if len(log.Topics) == 4 && log.Topics[0] == common.Erc721TransferEvent.Signature {
 			parsedLog := &Erc721Transfer{}
@@ -181,7 +181,7 @@ func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.
 				return nil, err
 			}
 
-			nft := &db.Nft{
+			nft := &db.NftTransfer{
 				BlockHash:       log.BlockHash,
 				Index:           utils.ToUint32(log.LogIndex),
 				BlockNumber:     utils.ToUint64(log.BlockNumber),
@@ -198,7 +198,7 @@ func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.
 			if err := parseLog(parsedLog, log, common.Erc1155TransferSingleEvent.Name, common.Erc1155TransferSingleEvent.Abi); err != nil {
 				return nil, err
 			}
-			nft := &db.Nft{
+			nft := &db.NftTransfer{
 				BlockHash:       log.BlockHash,
 				Index:           utils.ToUint32(log.LogIndex),
 				BlockNumber:     utils.ToUint64(log.BlockNumber),
@@ -219,7 +219,7 @@ func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.
 			}
 
 			for index, id := range parsedLog.Ids {
-				nft := &db.Nft{
+				nft := &db.NftTransfer{
 					BlockHash:       log.BlockHash,
 					Index:           utils.ToUint32(log.LogIndex),
 					BlockNumber:     utils.ToUint64(log.BlockNumber),
