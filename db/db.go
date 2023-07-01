@@ -338,7 +338,6 @@ func (*NftTransfer) BeforeCreateTable(ctx context.Context, query *bun.CreateTabl
 	query.ForeignKey(`("block_hash", "index") REFERENCES "logs" ("block_hash", "index")`)
 	query.ForeignKey(`("transaction_hash") REFERENCES "transactions" (hash)`)
 	query.ForeignKey(`("token_type_id") REFERENCES "token_types" (id)`)
-	query.ForeignKey(`("nft_metadata_id") REFERENCES "nft_metadata" (id)`)
 	return nil
 }
 

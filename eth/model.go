@@ -1,15 +1,26 @@
 package eth
 
 import (
+	"context"
+	"database/sql"
+	"encoding/hex"
+	"encoding/json"
 	"ethernal/explorer/common"
 	"ethernal/explorer/db"
 	"ethernal/explorer/utils"
 	"fmt"
+	"io/ioutil"
+	"math/big"
+	"net/http"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethereumCommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
+	bundb "github.com/uptrace/bun"
 )
 
 type Block struct {
@@ -79,6 +90,18 @@ type Log struct {
 	BlockHash        string
 	LogIndex         string
 	//Removed          bool
+}
+
+type NftMetadata struct {
+	Name                  string                 `json:"name"`
+	Image                 string                 `json:"image"`
+	Description           string                 `json:"description"`
+	NftMetadataAttributes []NftMetadataAttribute `json:"attributes"`
+}
+
+type NftMetadataAttribute struct {
+	TraitType string `json:"trait_type"`
+	Value     string `json:"value"`
 }
 
 func CreateDbBlock(block *Block) *db.Block {
@@ -172,8 +195,8 @@ func CreateDbLog(transaction *Transaction, receipt *TransactionReceipt) []*db.Lo
 	return logs
 }
 
-func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.NftTransfer, error) {
-	var nfts []*db.NftTransfer
+func CreateDbNfts(receipt *TransactionReceipt, client rpc.Client, timeout uint, ipfsGateway string, bunDb *bundb.DB, ctx context.Context) ([]*db.NftTransfer, error) {
+	var dbNftTransfers []*db.NftTransfer
 	for _, log := range receipt.Logs {
 		if len(log.Topics) == 4 && log.Topics[0] == common.Erc721TransferEvent.Signature {
 			parsedLog := &Erc721Transfer{}
@@ -181,7 +204,7 @@ func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.
 				return nil, err
 			}
 
-			nft := &db.NftTransfer{
+			nftTransfer := &db.NftTransfer{
 				BlockHash:       log.BlockHash,
 				Index:           utils.ToUint32(log.LogIndex),
 				BlockNumber:     utils.ToUint64(log.BlockNumber),
@@ -192,13 +215,19 @@ func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.
 				TokenId:         parsedLog.TokenId.String(),
 				TokenTypeId:     common.ERC721Type,
 			}
-			nfts = append(nfts, nft)
+
+			dbNftTransfers = append(dbNftTransfers, nftTransfer)
+
+			// nft mint
+			if parsedLog.From.String() == "0x0000000000000000000000000000000000000000" {
+				getNftMetadata(nftTransfer, client, timeout, ipfsGateway, bunDb, ctx)
+			}
 		} else if len(log.Topics) == 4 && log.Topics[0] == common.Erc1155TransferSingleEvent.Signature {
 			parsedLog := &Erc1155TransferSingle{}
 			if err := parseLog(parsedLog, log, common.Erc1155TransferSingleEvent.Name, common.Erc1155TransferSingleEvent.Abi); err != nil {
 				return nil, err
 			}
-			nft := &db.NftTransfer{
+			nftTransfer := &db.NftTransfer{
 				BlockHash:       log.BlockHash,
 				Index:           utils.ToUint32(log.LogIndex),
 				BlockNumber:     utils.ToUint64(log.BlockNumber),
@@ -210,7 +239,13 @@ func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.
 				Value:           parsedLog.Value.String(),
 				TokenTypeId:     common.ERC1155Type,
 			}
-			nfts = append(nfts, nft)
+
+			dbNftTransfers = append(dbNftTransfers, nftTransfer)
+
+			// nft mint
+			if parsedLog.From.String() == "0x0000000000000000000000000000000000000000" {
+				getNftMetadata(nftTransfer, client, timeout, ipfsGateway, bunDb, ctx)
+			}
 		} else if len(log.Topics) == 4 && log.Topics[0] == common.Erc1155TransferBatchEvent.Signature {
 			parsedLog := &Erc1155TransferBatch{}
 
@@ -218,8 +253,10 @@ func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.
 				return nil, err
 			}
 
+			mint := parsedLog.From.String() == "0x0000000000000000000000000000000000000000"
+
 			for index, id := range parsedLog.Ids {
-				nft := &db.NftTransfer{
+				nftTransfer := &db.NftTransfer{
 					BlockHash:       log.BlockHash,
 					Index:           utils.ToUint32(log.LogIndex),
 					BlockNumber:     utils.ToUint64(log.BlockNumber),
@@ -231,14 +268,18 @@ func CreateDbNfts(transaction *Transaction, receipt *TransactionReceipt) ([]*db.
 					Value:           parsedLog.Values[index].String(),
 					TokenTypeId:     common.ERC1155Type,
 				}
-				nfts = append(nfts, nft)
+				dbNftTransfers = append(dbNftTransfers, nftTransfer)
+
+				// nft mint
+				if mint {
+					getNftMetadata(nftTransfer, client, timeout, ipfsGateway, bunDb, ctx)
+				}
 			}
 		} else {
 			continue
 		}
-
 	}
-	return nfts, nil
+	return dbNftTransfers, nil
 }
 
 func parseLog(out interface{}, log Log, eventName string, eventAbi string) error {
@@ -263,4 +304,151 @@ func parseLog(out interface{}, log Log, eventName string, eventAbi string) error
 		topics = append(topics, ethereumCommon.BytesToHash(ethereumCommon.Hex2Bytes(log.Topics[i][2:])))
 	}
 	return abi.ParseTopics(out, indexed, topics)
+}
+
+func getNftMetadata(nftTransfer *db.NftTransfer, client rpc.Client, timeout uint, ipfsGateway string, bunDb *bundb.DB, ctx context.Context) {
+	var metadataId *uint64
+	bunDb.NewSelect().Table("nft_metadata").Column("id").Where("token_id = ? AND address = ?", nftTransfer.TokenId, nftTransfer.Address).Scan(ctx, &metadataId)
+
+	// if it does not exist in the database, check if it is in the dictionary
+	if metadataId == nil {
+		dictionary := GetMetadataDictionaryInstance()
+		key := nftTransfer.TokenId + "-" + nftTransfer.Address
+
+		// we start processing metadata only if it has been added to the dictionary (if another goroutine has not already started processing metadata for the same nft)
+		if added := dictionary.TryAdd(key, true); added {
+			go processNftMetadata(nftTransfer, client, timeout, ipfsGateway, bunDb)
+		}
+	}
+}
+
+func processNftMetadata(nftTransfer *db.NftTransfer, client rpc.Client, timeout uint, ipfsGateway string, bunDb *bundb.DB) {
+	metadata := &NftMetadata{
+		NftMetadataAttributes: make([]NftMetadataAttribute, 0),
+	}
+	dbNftMetadataAttributes := []*db.NftMetadataAttribute{}
+	var elems []rpc.BatchElem
+	var metadataUrl string
+	var data []byte
+	type params struct {
+		To   string `json:"to"`
+		Data string `json:"data"`
+	}
+
+	if nftTransfer.TokenTypeId == common.ERC721Type {
+		parsedAbi, _ := abi.JSON(strings.NewReader("[" + common.TokenUriMethod.Abi + "]"))
+		tokenId := new(big.Int)
+		tokenId.SetString(nftTransfer.TokenId, 10)
+		data, _ = parsedAbi.Pack(common.TokenUriMethod.Name, tokenId)
+	} else if nftTransfer.TokenTypeId == common.ERC1155Type {
+		parsedAbi, _ := abi.JSON(strings.NewReader("[" + common.UriMethod.Abi + "]"))
+		tokenId := new(big.Int)
+		tokenId.SetString(nftTransfer.TokenId, 10)
+		data, _ = parsedAbi.Pack(common.UriMethod.Name, tokenId)
+	}
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+	elems = append(elems, rpc.BatchElem{
+		Method: "eth_call",
+		Args:   []interface{}{params{nftTransfer.Address, "0x" + hex.EncodeToString(data)}, "latest"},
+		Result: &metadataUrl,
+	})
+
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	defer cancel()
+	err := client.BatchCallContext(ctxWithTimeout, elems)
+	if err != nil {
+		logrus.Error("Cannot get metadata url from blockchain, err: ", err)
+	}
+
+	if len(metadataUrl) > 0 && metadataUrl[0:2] == "0x" {
+		metadataUrl = metadataUrl[2:]
+	}
+
+	bs, _ := hex.DecodeString(metadataUrl)
+	re := regexp.MustCompile("[^a-zA-Z0-9:// -.]+")
+	str := re.ReplaceAllString(string(bs), "")
+	r, _ := regexp.Compile(`(?P<protocol>\w+):\/\/(?P<route>.*)`)
+	m := r.FindStringSubmatch(str)
+
+	if len(m) > 0 {
+		result := make(map[string]string)
+		for i, name := range r.SubexpNames() {
+			if i != 0 && name != "" {
+				result[name] = m[i]
+			}
+		}
+		protocol := result["protocol"]
+
+		if strings.Contains(protocol, "ipfs") {
+			url := ipfsGateway + result["route"]
+			getJson(url, metadata, timeout)
+		} else if strings.Contains(protocol, "http") {
+			url := "http://" + result["route"]
+			getJson(url, metadata, timeout)
+		} else if strings.Contains(protocol, "https") {
+			url := "https://" + result["route"]
+			getJson(url, metadata, timeout)
+		}
+	}
+	dbNftMetadata := db.NftMetadata{
+		TokenId:     nftTransfer.TokenId,
+		Address:     nftTransfer.Address,
+		Name:        metadata.Name,
+		Image:       metadata.Image,
+		Description: metadata.Description,
+	}
+
+	for _, attribute := range metadata.NftMetadataAttributes {
+		dbNftAttribute := &db.NftMetadataAttribute{
+			TraitType:     attribute.TraitType,
+			Value:         attribute.Value,
+			NftMetadataId: &dbNftMetadata.Id,
+		}
+		dbNftMetadataAttributes = append(dbNftMetadataAttributes, dbNftAttribute)
+	}
+	dictionary := GetMetadataDictionaryInstance()
+	dictionary.itemsData <- itemsData{metadata: &dbNftMetadata, attributes: dbNftMetadataAttributes}
+}
+
+func getJson(url string, target interface{}, timeout uint) error {
+	client := http.Client{
+		Timeout: time.Duration(timeout) * time.Second,
+	}
+	response, err := client.Get(url)
+	if err != nil {
+		logrus.Error("Cannot get metadata from "+url+", err: ", err)
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		logrus.Error("Cannot get metadata from "+url+", err: ", err)
+		return err
+	}
+	read, _ := ioutil.ReadAll(response.Body)
+	return json.Unmarshal([]byte(read), target)
+}
+
+func SyncNftMetadata(bunDb *bundb.DB) {
+	dictionary := GetMetadataDictionaryInstance()
+	ctx := context.TODO()
+	for job := range dictionary.itemsData {
+		_ = bunDb.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bundb.Tx) error {
+			_, nftMetadataError := tx.NewInsert().Model(job.metadata).Exec(ctx)
+			if nftMetadataError != nil {
+				logrus.Error("Error during inserting nft metadata in DB, err: ", nftMetadataError)
+				return nftMetadataError
+			}
+
+			if len(job.attributes) != 0 {
+				_, nftMetadataAttributeError := tx.NewInsert().Model(&job.attributes).Exec(ctx)
+				if nftMetadataAttributeError != nil {
+					logrus.Error("Error during inserting nft metadata attributes in DB, err: ", nftMetadataAttributeError)
+					return nftMetadataAttributeError
+				}
+			}
+			return nil
+		})
+		dictionary.TryRemove(job.metadata.TokenId + "-" + job.metadata.Address)
+	}
 }

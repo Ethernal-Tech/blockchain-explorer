@@ -24,6 +24,8 @@ type Config struct {
 	CheckpointWindow     uint
 	CheckpointDistance   uint
 	EthLogs              bool
+	NFTs                 bool
+	IPFSGatewayUrl       string
 }
 
 func LoadConfig() (*Config, error) {
@@ -69,6 +71,8 @@ func (cfg *Config) fillConfigurations() {
 	flag.UintVar(&cfg.CheckpointWindow, "checkpoint.window", viper.GetUint("CHECKPOINT_WINDOW"), "Sets after how many created blocks the checkpoint is determined")
 	flag.UintVar(&cfg.CheckpointDistance, "checkpoint.distance", viper.GetUint("CHECKPOINT_DISTANCE"), "Sets the checkpoint distance from the latest block on the blockchain")
 	flag.BoolVar(&cfg.EthLogs, "eth.logs", viper.GetBool("INCLUDE_ETH_LOGS"), "Include Ethereum Logs")
+	flag.BoolVar(&cfg.NFTs, "nfts", viper.GetBool("INCLUDE_NFTS"), "Include NFTs (to be included, logs must be included as well)")
+	flag.StringVar(&cfg.IPFSGatewayUrl, "ipfs.gateway", viper.GetString("IPFS_GATEWAY_URL"), "IPFS Gateway address")
 	flag.Parse()
 }
 

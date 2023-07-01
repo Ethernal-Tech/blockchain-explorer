@@ -29,6 +29,7 @@ func main() {
 		connection := eth.BlockchainNodeConnection{
 			HTTP: eth.GetClient(config.HTTPUrl),
 		}
+		go eth.SyncNftMetadata(db)
 		syncer.SyncMissingBlocks(connection.HTTP, db, config)
 	case common.Automatic:
 		// both HTTP and WebSocket connection to blockchain
@@ -36,6 +37,7 @@ func main() {
 			HTTP:      eth.GetClient(config.HTTPUrl),
 			WebSocket: eth.GetClient(config.WebSocketUrl),
 		}
+		go eth.SyncNftMetadata(db)
 		listener.ListenForNewBlocks(&connection, db, config)
 	default:
 		logrus.Info("Mode ", config.Mode, " is not provided")

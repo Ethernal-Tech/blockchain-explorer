@@ -103,11 +103,11 @@ func SyncMissingBlocks(client *rpc.Client, db *bundb.DB, config *config.Config) 
 					}
 				}
 
-				if len(val.Nfts) != 0 {
-					_, nftsError := tx.NewInsert().Model(&val.Nfts).Exec(ctx)
-					if nftsError != nil {
-						logrus.Error("Error during inserting nfts in DB, err: ", nftsError)
-						return nftsError
+				if len(val.NftTransfers) != 0 {
+					_, nftTransfersError := tx.NewInsert().Model(&val.NftTransfers).Exec(ctx)
+					if nftTransfersError != nil {
+						logrus.Error("Error during inserting nft transfers in DB, err: ", nftTransfersError)
+						return nftTransfersError
 					}
 				}
 
@@ -150,6 +150,8 @@ func createJobs(missingBlocks []uint64, client *rpc.Client, db *bundb.DB, config
 				Step:                 config.Step,
 				CallTimeoutInSeconds: config.CallTimeoutInSeconds,
 				EthLogs:              config.EthLogs,
+				NFTs:                 config.NFTs,
+				IPFSGateway:          config.IPFSGatewayUrl,
 			},
 		}
 	}
