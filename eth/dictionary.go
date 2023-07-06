@@ -12,7 +12,7 @@ type nftMetadataDictionary struct {
 }
 
 type itemsData struct {
-	metadata   *db.NftMetadata
+	metadata   []*db.NftMetadata
 	attributes []*db.NftMetadataAttribute
 }
 
@@ -56,4 +56,16 @@ func (dict *nftMetadataDictionary) TryRemove(key string) bool {
 		delete(dict.items, key)
 	}
 	return ok
+}
+
+// TryRemoveRange removes a metadata range from the dictionary, if it exists
+func (dict *nftMetadataDictionary) TryRemoveRange(keys []string) {
+	dict.lock.Lock()
+	defer dict.lock.Unlock()
+	for _, key := range keys {
+		_, ok := dict.items[key]
+		if ok {
+			delete(dict.items, key)
+		}
+	}
 }

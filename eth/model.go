@@ -10,6 +10,7 @@ import (
 	"ethernal/explorer/utils"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"net/http"
 	"regexp"
@@ -195,7 +196,7 @@ func CreateDbLog(transaction *Transaction, receipt *TransactionReceipt) []*db.Lo
 	return logs
 }
 
-func CreateDbNfts(receipt *TransactionReceipt, client rpc.Client, timeout uint, ipfsGateway string, bunDb *bundb.DB, ctx context.Context) ([]*db.NftTransfer, error) {
+func CreateDbNftTransfers(receipt *TransactionReceipt) ([]*db.NftTransfer, error) {
 	var dbNftTransfers []*db.NftTransfer
 	for _, log := range receipt.Logs {
 		if len(log.Topics) == 4 && log.Topics[0] == common.Erc721TransferEvent.Signature {
@@ -217,11 +218,6 @@ func CreateDbNfts(receipt *TransactionReceipt, client rpc.Client, timeout uint, 
 			}
 
 			dbNftTransfers = append(dbNftTransfers, nftTransfer)
-
-			// nft mint
-			if parsedLog.From.String() == "0x0000000000000000000000000000000000000000" {
-				getNftMetadata(nftTransfer, client, timeout, ipfsGateway, bunDb, ctx)
-			}
 		} else if len(log.Topics) == 4 && log.Topics[0] == common.Erc1155TransferSingleEvent.Signature {
 			parsedLog := &Erc1155TransferSingle{}
 			if err := parseLog(parsedLog, log, common.Erc1155TransferSingleEvent.Name, common.Erc1155TransferSingleEvent.Abi); err != nil {
@@ -241,19 +237,12 @@ func CreateDbNfts(receipt *TransactionReceipt, client rpc.Client, timeout uint, 
 			}
 
 			dbNftTransfers = append(dbNftTransfers, nftTransfer)
-
-			// nft mint
-			if parsedLog.From.String() == "0x0000000000000000000000000000000000000000" {
-				getNftMetadata(nftTransfer, client, timeout, ipfsGateway, bunDb, ctx)
-			}
 		} else if len(log.Topics) == 4 && log.Topics[0] == common.Erc1155TransferBatchEvent.Signature {
 			parsedLog := &Erc1155TransferBatch{}
 
 			if err := parseLog(parsedLog, log, common.Erc1155TransferBatchEvent.Name, common.Erc1155TransferBatchEvent.Abi); err != nil {
 				return nil, err
 			}
-
-			mint := parsedLog.From.String() == "0x0000000000000000000000000000000000000000"
 
 			for index, id := range parsedLog.Ids {
 				nftTransfer := &db.NftTransfer{
@@ -269,17 +258,40 @@ func CreateDbNfts(receipt *TransactionReceipt, client rpc.Client, timeout uint, 
 					TokenTypeId:     common.ERC1155Type,
 				}
 				dbNftTransfers = append(dbNftTransfers, nftTransfer)
-
-				// nft mint
-				if mint {
-					getNftMetadata(nftTransfer, client, timeout, ipfsGateway, bunDb, ctx)
-				}
 			}
 		} else {
 			continue
 		}
 	}
 	return dbNftTransfers, nil
+}
+
+func CreateDbNftMetadata(dbNftTransfers []*db.NftTransfer, client rpc.Client, timeout uint, ipfsGateway string, step uint, bunDb *bundb.DB, ctx context.Context) {
+	metadataForProcessing := []*db.NftTransfer{}
+	for _, nftTransfer := range dbNftTransfers {
+		// if nft mint
+		if nftTransfer.From == "0x0000000000000000000000000000000000000000" {
+			exists, _ := bunDb.NewSelect().Table("nft_metadata").Column("id").Where("token_id = ? AND address = ?", nftTransfer.TokenId, nftTransfer.Address).Exists(ctx)
+			// if metadata does not exist in the database, check if it is in the dictionary
+			if !exists {
+				dictionary := GetMetadataDictionaryInstance()
+				key := nftTransfer.TokenId + "-" + nftTransfer.Address
+
+				// we start processing metadata only if it has been added to the dictionary (if another goroutine has not already started processing metadata for the same nft)
+				if added := dictionary.TryAdd(key, true); added {
+					exists, _ = bunDb.NewSelect().Table("nft_metadata").Column("id").Where("token_id = ? AND address = ?", nftTransfer.TokenId, nftTransfer.Address).Exists(ctx)
+					if !exists {
+						metadataForProcessing = append(metadataForProcessing, nftTransfer)
+					} else {
+						dictionary.TryRemove(key)
+					}
+				}
+			}
+		}
+	}
+	if len(metadataForProcessing) > 0 {
+		go processNftMetadata(metadataForProcessing, client, timeout, ipfsGateway, step, bunDb)
+	}
 }
 
 func parseLog(out interface{}, log Log, eventName string, eventAbi string) error {
@@ -306,109 +318,113 @@ func parseLog(out interface{}, log Log, eventName string, eventAbi string) error
 	return abi.ParseTopics(out, indexed, topics)
 }
 
-func getNftMetadata(nftTransfer *db.NftTransfer, client rpc.Client, timeout uint, ipfsGateway string, bunDb *bundb.DB, ctx context.Context) {
-	var metadataId *uint64
-	bunDb.NewSelect().Table("nft_metadata").Column("id").Where("token_id = ? AND address = ?", nftTransfer.TokenId, nftTransfer.Address).Scan(ctx, &metadataId)
-
-	// if it does not exist in the database, check if it is in the dictionary
-	if metadataId == nil {
-		dictionary := GetMetadataDictionaryInstance()
-		key := nftTransfer.TokenId + "-" + nftTransfer.Address
-
-		// we start processing metadata only if it has been added to the dictionary (if another goroutine has not already started processing metadata for the same nft)
-		if added := dictionary.TryAdd(key, true); added {
-			go processNftMetadata(nftTransfer, client, timeout, ipfsGateway, bunDb)
-		}
-	}
-}
-
-func processNftMetadata(nftTransfer *db.NftTransfer, client rpc.Client, timeout uint, ipfsGateway string, bunDb *bundb.DB) {
-	metadata := &NftMetadata{
-		NftMetadataAttributes: make([]NftMetadataAttribute, 0),
-	}
+func processNftMetadata(dbNftTransfers []*db.NftTransfer, client rpc.Client, timeout uint, ipfsGateway string, step uint, bunDb *bundb.DB) {
+	metadataList := []*NftMetadata{}
+	dbNftMetadataList := []*db.NftMetadata{}
 	dbNftMetadataAttributes := []*db.NftMetadataAttribute{}
+	metadataUrls := []*string{}
 	var elems []rpc.BatchElem
-	var metadataUrl string
-	var data []byte
 	type params struct {
 		To   string `json:"to"`
 		Data string `json:"data"`
 	}
-
-	if nftTransfer.TokenTypeId == common.ERC721Type {
-		parsedAbi, _ := abi.JSON(strings.NewReader("[" + common.TokenUriMethod.Abi + "]"))
-		tokenId := new(big.Int)
-		tokenId.SetString(nftTransfer.TokenId, 10)
-		data, _ = parsedAbi.Pack(common.TokenUriMethod.Name, tokenId)
-	} else if nftTransfer.TokenTypeId == common.ERC1155Type {
-		parsedAbi, _ := abi.JSON(strings.NewReader("[" + common.UriMethod.Abi + "]"))
-		tokenId := new(big.Int)
-		tokenId.SetString(nftTransfer.TokenId, 10)
-		data, _ = parsedAbi.Pack(common.UriMethod.Name, tokenId)
-	}
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
-	elems = append(elems, rpc.BatchElem{
-		Method: "eth_call",
-		Args:   []interface{}{params{nftTransfer.Address, "0x" + hex.EncodeToString(data)}, "latest"},
-		Result: &metadataUrl,
-	})
 
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
-	defer cancel()
-	err := client.BatchCallContext(ctxWithTimeout, elems)
-	if err != nil {
-		logrus.Error("Cannot get metadata url from blockchain, err: ", err)
+	for _, dbNftTransfer := range dbNftTransfers {
+		metadata := &NftMetadata{
+			NftMetadataAttributes: make([]NftMetadataAttribute, 0),
+		}
+		var metadataUrl string
+		var data []byte
+		if dbNftTransfer.TokenTypeId == common.ERC721Type {
+			parsedAbi, _ := abi.JSON(strings.NewReader("[" + common.TokenUriMethod.Abi + "]"))
+			tokenId := new(big.Int)
+			tokenId.SetString(dbNftTransfer.TokenId, 10)
+			data, _ = parsedAbi.Pack(common.TokenUriMethod.Name, tokenId)
+		} else if dbNftTransfer.TokenTypeId == common.ERC1155Type {
+			parsedAbi, _ := abi.JSON(strings.NewReader("[" + common.UriMethod.Abi + "]"))
+			tokenId := new(big.Int)
+			tokenId.SetString(dbNftTransfer.TokenId, 10)
+			data, _ = parsedAbi.Pack(common.UriMethod.Name, tokenId)
+		}
+
+		elems = append(elems, rpc.BatchElem{
+			Method: "eth_call",
+			Args:   []interface{}{params{dbNftTransfer.Address, "0x" + hex.EncodeToString(data)}, "latest"},
+			Result: &metadataUrl,
+		})
+		metadataList = append(metadataList, metadata)
+		metadataUrls = append(metadataUrls, &metadataUrl)
 	}
 
-	if len(metadataUrl) > 0 && metadataUrl[0:2] == "0x" {
-		metadataUrl = metadataUrl[2:]
+	totalCounter := uint(math.Ceil(float64(len(elems)) / float64(step)))
+	var i uint
+	for i = 0; i < totalCounter; i++ {
+		from := i * step
+		to := int(math.Min(float64(len(elems)), float64((i+1)*step)))
+		elemSlice := elems[from:to]
+		ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+		defer cancel()
+		err := client.BatchCallContext(ctxWithTimeout, elemSlice)
+		if err != nil {
+			logrus.Error("Cannot get metadata url from blockchain, err: ", err)
+		}
+
 	}
 
-	bs, _ := hex.DecodeString(metadataUrl)
-	re := regexp.MustCompile("[^a-zA-Z0-9:// -.]+")
-	str := re.ReplaceAllString(string(bs), "")
-	r, _ := regexp.Compile(`(?P<protocol>\w+):\/\/(?P<route>.*)`)
-	m := r.FindStringSubmatch(str)
+	for i, metadataUrl := range metadataUrls {
+		url := *metadataUrl
+		if len(url) > 0 && url[0:2] == "0x" {
+			url = url[2:]
+		}
 
-	if len(m) > 0 {
-		result := make(map[string]string)
-		for i, name := range r.SubexpNames() {
-			if i != 0 && name != "" {
-				result[name] = m[i]
+		bs, _ := hex.DecodeString(url)
+		re := regexp.MustCompile("[^a-zA-Z0-9:// -.]+")
+		str := re.ReplaceAllString(string(bs), "")
+		r, _ := regexp.Compile(`(?P<protocol>\w+):\/\/(?P<route>.*)`)
+		m := r.FindStringSubmatch(str)
+
+		if len(m) > 0 {
+			result := make(map[string]string)
+			for i, name := range r.SubexpNames() {
+				if i != 0 && name != "" {
+					result[name] = m[i]
+				}
+			}
+			protocol := result["protocol"]
+
+			if strings.Contains(protocol, "ipfs") {
+				url := ipfsGateway + result["route"]
+				getJson(url, metadataList[i], timeout)
+			} else if strings.Contains(protocol, "http") {
+				url := "http://" + result["route"]
+				getJson(url, metadataList[i], timeout)
+			} else if strings.Contains(protocol, "https") {
+				url := "https://" + result["route"]
+				getJson(url, metadataList[i], timeout)
 			}
 		}
-		protocol := result["protocol"]
-
-		if strings.Contains(protocol, "ipfs") {
-			url := ipfsGateway + result["route"]
-			getJson(url, metadata, timeout)
-		} else if strings.Contains(protocol, "http") {
-			url := "http://" + result["route"]
-			getJson(url, metadata, timeout)
-		} else if strings.Contains(protocol, "https") {
-			url := "https://" + result["route"]
-			getJson(url, metadata, timeout)
+		dbNftMetadata := &db.NftMetadata{
+			TokenId:     dbNftTransfers[i].TokenId,
+			Address:     dbNftTransfers[i].Address,
+			Name:        metadataList[i].Name,
+			Image:       metadataList[i].Image,
+			Description: metadataList[i].Description,
 		}
-	}
-	dbNftMetadata := db.NftMetadata{
-		TokenId:     nftTransfer.TokenId,
-		Address:     nftTransfer.Address,
-		Name:        metadata.Name,
-		Image:       metadata.Image,
-		Description: metadata.Description,
-	}
 
-	for _, attribute := range metadata.NftMetadataAttributes {
-		dbNftAttribute := &db.NftMetadataAttribute{
-			TraitType:     attribute.TraitType,
-			Value:         attribute.Value,
-			NftMetadataId: &dbNftMetadata.Id,
+		for _, attribute := range metadataList[i].NftMetadataAttributes {
+			dbNftAttribute := &db.NftMetadataAttribute{
+				TraitType:     attribute.TraitType,
+				Value:         attribute.Value,
+				NftMetadataId: &dbNftMetadata.Id,
+			}
+			dbNftMetadataAttributes = append(dbNftMetadataAttributes, dbNftAttribute)
 		}
-		dbNftMetadataAttributes = append(dbNftMetadataAttributes, dbNftAttribute)
+		dbNftMetadataList = append(dbNftMetadataList, dbNftMetadata)
 	}
 	dictionary := GetMetadataDictionaryInstance()
-	dictionary.itemsData <- itemsData{metadata: &dbNftMetadata, attributes: dbNftMetadataAttributes}
+	dictionary.itemsData <- itemsData{metadata: dbNftMetadataList, attributes: dbNftMetadataAttributes}
 }
 
 func getJson(url string, target interface{}, timeout uint) error {
@@ -417,31 +433,32 @@ func getJson(url string, target interface{}, timeout uint) error {
 	}
 	response, err := client.Get(url)
 	if err != nil {
-		logrus.Error("Cannot get metadata from "+url+", err: ", err)
+		logrus.Error("Cannot get metadata from ", url, ", err: ", err)
 		return err
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		logrus.Error("Cannot get metadata from "+url+", err: ", err)
+		logrus.Error("Cannot get metadata from ", url, ", err: ", err)
 		return err
 	}
 	read, _ := ioutil.ReadAll(response.Body)
 	return json.Unmarshal([]byte(read), target)
 }
 
+// SyncNftMetadata inserts nft metadata into the database.
 func SyncNftMetadata(bunDb *bundb.DB) {
 	dictionary := GetMetadataDictionaryInstance()
 	ctx := context.TODO()
-	for job := range dictionary.itemsData {
+	for itemData := range dictionary.itemsData {
 		_ = bunDb.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bundb.Tx) error {
-			_, nftMetadataError := tx.NewInsert().Model(job.metadata).Exec(ctx)
+			_, nftMetadataError := tx.NewInsert().Model(&itemData.metadata).Exec(ctx)
 			if nftMetadataError != nil {
 				logrus.Error("Error during inserting nft metadata in DB, err: ", nftMetadataError)
 				return nftMetadataError
 			}
 
-			if len(job.attributes) != 0 {
-				_, nftMetadataAttributeError := tx.NewInsert().Model(&job.attributes).Exec(ctx)
+			if len(itemData.attributes) != 0 {
+				_, nftMetadataAttributeError := tx.NewInsert().Model(&itemData.attributes).Exec(ctx)
 				if nftMetadataAttributeError != nil {
 					logrus.Error("Error during inserting nft metadata attributes in DB, err: ", nftMetadataAttributeError)
 					return nftMetadataAttributeError
@@ -449,6 +466,10 @@ func SyncNftMetadata(bunDb *bundb.DB) {
 			}
 			return nil
 		})
-		dictionary.TryRemove(job.metadata.TokenId + "-" + job.metadata.Address)
+		keys := make([]string, len(itemData.metadata))
+		for _, metadata := range itemData.metadata {
+			keys = append(keys, metadata.TokenId+"-"+metadata.Address)
+		}
+		dictionary.TryRemoveRange(keys)
 	}
 }

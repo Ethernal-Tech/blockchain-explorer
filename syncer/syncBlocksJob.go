@@ -67,7 +67,7 @@ var (
 			if jobArgs.EthLogs {
 				dbLogs = append(dbLogs, eth.CreateDbLog(t, receipts[i])...)
 				if jobArgs.NFTs {
-					nftTransfers, err := eth.CreateDbNfts(receipts[i], *jobArgs.Client, jobArgs.CallTimeoutInSeconds, jobArgs.IPFSGateway, jobArgs.Db, ctx)
+					nftTransfers, err := eth.CreateDbNftTransfers(receipts[i])
 					if err != nil {
 						logrus.Error("Error while parsing logs for transaction ", t.Hash, " , err: ", err)
 						return nil
@@ -76,6 +76,7 @@ var (
 				}
 			}
 		}
+		eth.CreateDbNftMetadata(dbNftTransfers, *jobArgs.Client, jobArgs.CallTimeoutInSeconds, jobArgs.IPFSGateway, jobArgs.Step, jobArgs.Db, ctx)
 
 		return JobResult{
 			Blocks:       dbBlocks,
