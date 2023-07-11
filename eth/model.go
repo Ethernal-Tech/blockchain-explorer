@@ -380,7 +380,7 @@ func processNftMetadata(dbNftTransfers []*db.NftTransfer, client rpc.Client, tim
 		}
 
 		bs, _ := hex.DecodeString(url)
-		re := regexp.MustCompile("[^a-zA-Z0-9:// -.]+")
+		re := regexp.MustCompile(`[^a-zA-Z0-9@:%._\+~#?&//=]+`)
 		str := re.ReplaceAllString(string(bs), "")
 		r, _ := regexp.Compile(`(?P<protocol>\w+):\/\/(?P<route>.*)`)
 		m := r.FindStringSubmatch(str)
@@ -397,11 +397,11 @@ func processNftMetadata(dbNftTransfers []*db.NftTransfer, client rpc.Client, tim
 			if strings.Contains(protocol, "ipfs") {
 				url := ipfsGateway + result["route"]
 				getJson(url, metadataList[i], timeout)
-			} else if strings.Contains(protocol, "http") {
-				url := "http://" + result["route"]
-				getJson(url, metadataList[i], timeout)
 			} else if strings.Contains(protocol, "https") {
 				url := "https://" + result["route"]
+				getJson(url, metadataList[i], timeout)
+			} else if strings.Contains(protocol, "http") {
+				url := "http://" + result["route"]
 				getJson(url, metadataList[i], timeout)
 			}
 		}
