@@ -181,7 +181,7 @@ func getLastBlockFromChain(ctx context.Context, client *rpc.Client, callTimeoutI
 		}
 		if block.Number != "" {
 			latestBlock = utils.ToUint64(block.Number)
-			logrus.Info("The number of latest block is ", latestBlock)
+			logrus.Info("The number of latest block on node is ", latestBlock)
 			break
 		}
 	}
