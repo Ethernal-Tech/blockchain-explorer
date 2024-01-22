@@ -433,12 +433,12 @@ func getJson(url string, target interface{}, timeout uint) error {
 	}
 	response, err := client.Get(url)
 	if err != nil {
-		logrus.Error("Cannot get metadata from ", url, ", err: ", err)
+		logrus.Debug("Cannot get metadata from ", url, ", err: ", err)
 		return err
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		logrus.Error("Cannot get metadata from ", url, ", err: ", err)
+		logrus.Debug("Cannot get metadata from ", url, ", err: ", err)
 		return err
 	}
 	read, _ := ioutil.ReadAll(response.Body)
